@@ -234,6 +234,32 @@ header {
   font-size: 11px;
 }
 
+.window-rigel-results {
+  grid-template-columns: 1fr auto;
+  background: #f4f8fd;
+  border-color: #cbdced;
+}
+
+.window-rigel-results > strong:first-child {
+  grid-column: 1 / -1;
+  color: #355a86;
+}
+
+.window-rigel-row {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid #dce7f2;
+  font-size: 13px;
+}
+
+.window-rigel-row span:last-child {
+  color: var(--muted);
+  text-align: right;
+}
+
 .metal-card {
   border-left: 4px solid #52749d;
 }

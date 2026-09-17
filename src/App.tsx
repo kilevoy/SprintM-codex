@@ -186,6 +186,7 @@ function OpeningGroupsEditor({
 
 export function App() {
   const [city, setCity] = useState("Челябинск");
+  const [supplyScope, setSupplyScope] = useState<"full" | "frame-roof">("full");
   // Тип местности по СП — вход будущего подбора оконных ригелей.
   const [terrainType, setTerrainType] = useState<"A" | "B" | "C">("B");
   // Ручной ввод нагрузок — для площадок, которых нет в справочнике.
@@ -260,6 +261,7 @@ export function App() {
     () =>
       computeProject({
         city,
+        supplyScope,
         terrainType,
         manualClimate: manualMode
           ? { snowLoad_kPa: manualSnow, windDistrict: manualWind, label: city }
@@ -296,6 +298,7 @@ export function App() {
       }),
     [
       city,
+      supplyScope,
       terrainType,
       manualMode,
       manualSnow,
@@ -412,6 +415,7 @@ export function App() {
   /** Разложить исходные данные обратно по полям формы. */
   function applyInputs(next: ProjectInputs) {
     setCity(next.city ?? "");
+    setSupplyScope(next.supplyScope ?? "full");
     setTerrainType(next.terrainType ?? "B");
     setManualMode(Boolean(next.manualClimate));
     if (next.manualClimate) {
@@ -514,6 +518,22 @@ export function App() {
       setFileMessage({ kind: "error", text: `Не удалось прочитать файл: ${(e as Error).message}` });
     }
   }
+
+  const supplyFrameLine = commercial.lines.find((line) => line.name === "Каркас");
+  // ПС 145х1,5 — стеновой прогон в строках раздела «Каркас». Для режима
+  // поставки только каркаса его стоимость исключаем вместе с 2% накладных.
+  const wallPurlinCost = bill.materials[0]?.rows
+    .filter((row) => row.name.startsWith("ПС 145"))
+    .reduce((sum, row) => sum + (row.cost ?? 0), 0) ?? 0;
+  const frameOnlyCost = supplyFrameLine?.cost === null || supplyFrameLine?.cost === undefined
+    ? null
+    : supplyFrameLine.cost - wallPurlinCost * 1.02;
+  const supplyCost = supplyScope === "frame-roof"
+    ? frameOnlyCost
+    : commercial.materialsWithPackaging;
+  const visibleCommercialLines = supplyScope === "frame-roof"
+    ? commercial.lines.filter((line) => line.name === "Каркас")
+    : commercial.lines.filter((line) => line.name !== "Окна, ворота, двери");
 
   return (
     <div className="page">
@@ -665,6 +685,17 @@ export function App() {
                   </button>
                 </>
               )}
+            </span>
+          </label>
+
+          <label>
+            Состав поставки
+            <select value={supplyScope} onChange={(e) => setSupplyScope(e.target.value as "full" | "frame-roof")}>
+              <option value="full">полный комплект</option>
+              <option value="frame-roof">только каркас + кровельные прогоны</option>
+            </select>
+            <span className="field-hint">
+              В режиме «только каркас» стены, панели, водосток и стеновая подсистема не входят в поставочный итог.
             </span>
           </label>
 
@@ -903,6 +934,26 @@ export function App() {
           <strong>{Math.round(openingsCost.totalCost).toLocaleString("ru-RU")} ₽</strong>
           <small>не включается в стоимость проекта и сравнение базовой стоимости</small>
         </div>
+        {openingsFraming.windowSelections.length > 0 && (
+          <div className="opening-cost window-rigel-results">
+            <strong>Подобранные оконные ригели</strong>
+            {openingsFraming.windowSelections.map((selection, index) => (
+              <div className="window-rigel-row" key={`${selection.type}-${index}`}>
+                <span>
+                  Окна: тип {selection.type}, {selection.count} шт. — {selection.profile.name} ({selection.profile.steel})
+                </span>
+                <span>
+                  нижний {selection.lowerLength_m.toFixed(2)} м · верхний {selection.upperLength_m.toFixed(2)} м · {selection.profile.massPerM_kg.toFixed(1)} кг/м
+                </span>
+              </div>
+            ))}
+            <span>Масса оконных ригелей</span>
+            <strong>{openingsFraming.windows_kg.toLocaleString("ru-RU", { maximumFractionDigits: 1 })} кг</strong>
+            <small>
+              Стоимость трубы: {Math.round(openingsFraming.windows_cost).toLocaleString("ru-RU")} ₽ · обычная неоцинкованная труба
+            </small>
+          </div>
+        )}
         <p className="field-hint">
           Ворота на длинной стене раздвигают свою раму (шаг ≥ ширина ворот + 0,8 м) — на
           торце раздвигать нечего, там рамы и так по краям здания.
@@ -1742,13 +1793,12 @@ export function App() {
       <section className="card summary-card" id="results">
         <h2>Итоговая сводка</h2>
         <p className="hint">
-          Структура — как в коммерческой части исходной ведомости: три статьи материалов с
-          упаковкой 2%, проёмы отдельной строкой сверх неё.
+          {supplyScope === "frame-roof"
+            ? "Состав поставки: только каркас и кровельные прогоны. Стеновая подсистема, ограждение и водосток исключены из поставочного итога."
+            : "Структура — как в коммерческой части исходной ведомости: три статьи материалов с упаковкой 2%, проёмы отдельной строкой сверх неё."}
         </p>
         <dl className="result-list">
-          {commercial.lines
-            .filter((line) => line.name !== "Окна, ворота, двери")
-            .map((line) => (
+          {visibleCommercialLines.map((line) => (
             <Fragment key={line.name}>
               <dt>{line.name}</dt>
               <dd>
@@ -1761,17 +1811,21 @@ export function App() {
               </dd>
             </Fragment>
           ))}
-          <dt>Итого без окон, ворот и дверей</dt>
+          <dt>{supplyScope === "frame-roof" ? "Итого поставка каркаса" : "Итого без окон, ворот и дверей"}</dt>
           <dd className="summary-total">
-            {commercial.materialsWithPackaging !== null
-              ? Math.round(commercial.materialsWithPackaging).toLocaleString("ru-RU") + " ₽"
+            {supplyCost !== null
+              ? Math.round(supplyCost).toLocaleString("ru-RU") + " ₽"
               : "—"}
-            {commercial.lines.filter((l) => l.name !== "Окна, ворота, двери").some((l) => l.missing) && (
+            {visibleCommercialLines.some((l) => l.missing) && (
               <span className="incomplete"> — занижено, см. выше</span>
             )}
           </dd>
-          <dt>Окна, ворота, двери</dt>
-          <dd>{Math.round(commercial.openingsCost).toLocaleString("ru-RU")} ₽ <span className="incomplete">— отдельно</span></dd>
+          {supplyScope === "full" && (
+            <>
+              <dt>Окна, ворота, двери</dt>
+              <dd>{Math.round(commercial.openingsCost).toLocaleString("ru-RU")} ₽ <span className="incomplete">— отдельно</span></dd>
+            </>
+          )}
           <dt className="group-heading">Справочно</dt>
           <dd />
           {fireResistanceRating !== "" && (
@@ -1789,8 +1843,8 @@ export function App() {
           <dd>{summary.claddingMass_kg.toFixed(0)} кг</dd>
           <dt>Материалы без упаковки</dt>
           <dd>
-            {commercial.materialsWithPackaging !== null
-              ? `${Math.round(commercial.materialsWithPackaging / 1.02).toLocaleString("ru-RU")} ₽`
+            {supplyCost !== null
+              ? `${Math.round(supplyCost / 1.02).toLocaleString("ru-RU")} ₽`
               : "—"}
           </dd>
           <dt>Из чего складывается</dt>

@@ -74,6 +74,8 @@ const SECTION_OVERHEAD = 1.02;
 
 export interface ProjectInputs {
   city: string;
+  /** Состав поставки: полный комплект или только каркас с кровельными прогонами. */
+  supplyScope?: "full" | "frame-roof";
   /** Тип местности по СП (A/B/C). Нужен для подбора оконных ригелей; пока не меняет текущие формулы. */
   terrainType?: "A" | "B" | "C";
   span: Span;

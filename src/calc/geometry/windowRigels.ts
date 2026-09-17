@@ -65,6 +65,7 @@ export interface WindowRigelSelectionInput {
 }
 
 export interface WindowRigelSelection {
+  type: WindowRigelType;
   profile: WindowRigelProfile;
   utilization: { slenderness: number; strength: number; verticalDeflection: number; horizontalDeflection: number };
   lowerLength_m: number;
@@ -100,6 +101,7 @@ export function selectWindowRigel(input: WindowRigelSelectionInput): WindowRigel
     const horizontalDeflection = verticalDeflection;
     if (Math.max(slenderness, strength, verticalDeflection, horizontalDeflection) <= maxUtilization) {
       return {
+        type: input.type,
         profile,
         utilization: { slenderness, strength, verticalDeflection, horizontalDeflection },
         lowerLength_m: input.framePitch_m,
