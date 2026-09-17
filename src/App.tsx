@@ -378,7 +378,8 @@ export function App() {
   const heightLimits = heightLimitsForSpan(span);
   const heightTooHigh = height > heightLimits.max_m;
 
-  const bill = useMemo(() => buildBill(project), [project]);
+  const fullBill = useMemo(() => buildBill(project), [project]);
+  const bill = useMemo(() => buildBill(project, supplyScope), [project, supplyScope]);
 
   // Сколько ручных переопределений включено — чтобы свёрнутый блок не прятал их молча.
   const overrideCount =
@@ -522,7 +523,7 @@ export function App() {
   const supplyFrameLine = commercial.lines.find((line) => line.name === "Каркас");
   // ПС 145х1,5 — стеновой прогон в строках раздела «Каркас». Для режима
   // поставки только каркаса его стоимость исключаем вместе с 2% накладных.
-  const wallPurlinCost = bill.materials[0]?.rows
+  const wallPurlinCost = fullBill.materials[0]?.rows
     .filter((row) => row.name.startsWith("ПС 145"))
     .reduce((sum, row) => sum + (row.cost ?? 0), 0) ?? 0;
   const frameOnlyCost = supplyFrameLine?.cost === null || supplyFrameLine?.cost === undefined
@@ -891,6 +892,24 @@ export function App() {
               </span>
             )}
           </label>
+
+          <p className="hint span-2">
+            Подбор сечений выполнен с учётом нагрузок текущего покрытия кровли
+            {roofingType === "профлист"
+              ? ` (профнастил С-44, ${roofProfnastilThickness} мм)`
+              : ` (сэндвич-панель ${roofThickness} мм)`}
+            {" "}и ограждения стен
+            {wallCladdingMaterial === "СП"
+              ? ` (сэндвич-панель ${wallThickness} мм)`
+              : ` (профнастил С-18, ${wallProfnastilThickness} мм)`}
+            .
+            {roofLoad && (
+              <>
+                {" "}Расчётная нагрузка на кровлю: {roofLoad.total_kPa.toFixed(3)} кПа
+                ({roofLoad.total_kg_m2.toFixed(1)} кг/м²).
+              </>
+            )}
+          </p>
 
         </div>
       </section>

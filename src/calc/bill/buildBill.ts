@@ -83,7 +83,7 @@ function sumOrNull(values: (number | null)[]): number | null {
  * Итоги разделов сверяются с ячейками исходника — F32, F44, F70, F81,
  * F100, F114, F147 — и это проверяется тестом на обоих реальных проектах.
  */
-export function buildBill(project: ProjectResult): Bill {
+export function buildBill(project: ProjectResult, supplyScope: "full" | "frame-roof" = "full"): Bill {
   const {
     frameTakeoff,
     purlinLayout,
@@ -246,7 +246,7 @@ export function buildBill(project: ProjectResult): Bill {
   const recommendedPrice = sumOrNull([materialsTotal, additionalTotal]);
   const packaging = recommendedPrice === null ? null : recommendedPrice * PACKAGING_RATE;
 
-  return {
+  const fullBill: Bill = {
     materials,
     additional,
     materialsTotal,
@@ -255,5 +255,44 @@ export function buildBill(project: ProjectResult): Bill {
     packaging,
     totalWithPackaging: recommendedPrice === null ? null : recommendedPrice + (packaging ?? 0),
     buildingMass_kg: [...materials, ...additional].reduce((s, x) => s + x.totalMass_kg, 0),
+  };
+
+  if (supplyScope !== "frame-roof") return fullBill;
+
+  // Режим поставки «только каркас»: оставляем рамы, кровельные прогоны,
+  // связи и крепёж каркаса. ПС 145х1,5 — стеновой прогон и исключается.
+  const recalcSection = (source: BillSection, rows: BillRow[]): BillSection => {
+    const subtotalCost = rows.some((row) => row.cost === null)
+      ? null
+      : rows.reduce((sum, row) => sum + (row.cost ?? 0), 0);
+    const overheadCost = subtotalCost === null ? null : subtotalCost * OVERHEAD_RATE;
+    return {
+      ...source,
+      rows,
+      subtotalCost,
+      overheadCost,
+      totalCost: subtotalCost === null ? null : subtotalCost + (overheadCost ?? 0),
+      totalMass_kg: rows.reduce((sum, row) => sum + (row.mass_kg ?? 0), 0),
+    };
+  };
+  const supplyMaterials = fullBill.materials
+    .filter((section) => section.title === "Каркас")
+    .map((section) => recalcSection(section, section.rows.filter((row) => !row.name.startsWith("ПС 145"))));
+  const supplyAdditional = fullBill.additional
+    .filter((section) => section.title === "Каркас")
+    .map((section) => recalcSection(section, section.rows));
+  const supplyMaterialsTotal = sumOrNull(supplyMaterials.map((section) => section.totalCost));
+  const supplyAdditionalTotal = sumOrNull(supplyAdditional.map((section) => section.totalCost));
+  const supplyRecommendedPrice = sumOrNull([supplyMaterialsTotal, supplyAdditionalTotal]);
+  const supplyPackaging = supplyRecommendedPrice === null ? null : supplyRecommendedPrice * PACKAGING_RATE;
+  return {
+    materials: supplyMaterials,
+    additional: supplyAdditional,
+    materialsTotal: supplyMaterialsTotal,
+    additionalTotal: supplyAdditionalTotal,
+    recommendedPrice: supplyRecommendedPrice,
+    packaging: supplyPackaging,
+    totalWithPackaging: supplyRecommendedPrice === null ? null : supplyRecommendedPrice + (supplyPackaging ?? 0),
+    buildingMass_kg: [...supplyMaterials, ...supplyAdditional].reduce((sum, section) => sum + section.totalMass_kg, 0),
   };
 }
