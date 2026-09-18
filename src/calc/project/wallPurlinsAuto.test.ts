@@ -66,6 +66,47 @@ describe("автоподбор стеновых прогонов в расчёт
     expect(auto.endWalls.regular.rows).toBeGreaterThan(auto.longWalls.regular.rows);
   });
 
+  it("торец считается по коньку и пролёту, продольная — по карнизу и длине", () => {
+    // Здание, где все четыре величины различаются, — подмена любой из них
+    // сразу видна: пролёт 18, длина 48, карниз 7, конёк 7 + 9·tg(15°).
+    const result = computeProject({
+      ...coldProfnastilHangar,
+      span: 18,
+      length_m: 48,
+      height_m: 7,
+      framePitchOverride_m: 6,
+    });
+    const auto = result.wallPurlinsAuto;
+    expect(auto).not.toBeNull();
+    if (!auto || !auto.longWalls.ok || !auto.endWalls.ok) throw new Error("подбор не дал решения");
+
+    const ridge_m = 7 + Math.tan((15 * Math.PI) / 180) * 9;
+
+    expect(auto.longWalls.wallHeight_m).toBe(7);
+    expect(auto.longWalls.wallLength_m).toBe(48);
+    expect(auto.endWalls.wallHeight_m).toBeCloseTo(ridge_m, 9);
+    expect(auto.endWalls.wallLength_m).toBe(18);
+
+    // Ровно то, что важно не перепутать: торец выше продольной стены.
+    expect(auto.endWalls.wallHeight_m).toBeGreaterThan(auto.longWalls.wallHeight_m);
+    expect(auto.longWalls.wallHeight_m).not.toBe(auto.endWalls.wallHeight_m);
+    expect(auto.longWalls.wallLength_m).not.toBe(auto.endWalls.wallLength_m);
+  });
+
+  it("треугольник фронтона учитывается высотой до конька, а не отдельным слагаемым", () => {
+    // Все ряды торца идут на полную ширину пролёта, включая те, что попали
+    // в треугольник фронтона: в ведомости 21876 это записано как
+    // 5*2*12*2 — пять рядов по 12 м, без укорочения верхних.
+    // Считать треугольник отдельно нельзя: это сломает паритет.
+    const result = computeProject(coldProfnastilHangar);
+    const auto = result.wallPurlinsAuto;
+    if (!auto || !auto.endWalls.ok) throw new Error("подбор не дал решения");
+    const zones = auto.endWalls.corner.zoneLength_m + auto.endWalls.regular.zoneLength_m;
+    // Зоны торца покрывают ПОЛНЫЙ пролёт, а не усечённую по треугольнику ширину.
+    expect(zones).toBeCloseTo(coldProfnastilHangar.span, 9);
+    expect(auto.endWalls.wallLength_m).toBe(coldProfnastilHangar.span);
+  });
+
   it("шаг стоек торца выводится из числа стоек фахверка", () => {
     const result = computeProject(coldProfnastilHangar);
     // Пролёт 12 м, 4 стойки на здание -> 2 на торец -> 3 пролёта по 4 м.

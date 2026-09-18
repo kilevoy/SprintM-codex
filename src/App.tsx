@@ -554,6 +554,21 @@ export function App() {
     : supplyFrameLine.cost - wallPurlinCost * 1.02;
   // Оба «каркасных» состава показывают одно и то же: отличаются они только
   // тем, входит ли в поставку стеновые прогоны (они в стоимость пока не идут).
+  // Высоты обеих стен выносятся в подпись раздела: калькулятор тип стены не
+  // знает и берёт что дадут, поэтому подмену высоты торца на карнизную видно
+  // только так — глазами по ведомости.
+  const wallPurlinHeightsCaption = (() => {
+    const auto = project.wallPurlinsAuto;
+    const base = "Стеновые прогоны — объёмы сверены, в стоимость проекта пока не входят";
+    if (!auto || !auto.longWalls.ok || !auto.endWalls.ok) return base;
+    const m = (value: number) => value.toLocaleString("ru-RU", { maximumFractionDigits: 2 });
+    return (
+      `${base}. Торец считается по коньку ${m(auto.endWalls.wallHeight_m)} м на пролёт ` +
+      `${m(auto.endWalls.wallLength_m)} м, продольная стена — по карнизу ` +
+      `${m(auto.longWalls.wallHeight_m)} м на длину ${m(auto.longWalls.wallLength_m)} м`
+    );
+  })();
+
   const frameOnlyScope = supplyScope !== "full";
   const supplyCost = frameOnlyScope
     ? frameOnlyCost
@@ -1783,7 +1798,7 @@ export function App() {
               { caption: "Материалы «ИНСИ»", sections: bill.materials },
               { caption: "Дополнительные материалы", sections: bill.additional },
               {
-                caption: "Стеновые прогоны — объёмы сверены, в стоимость проекта пока не входят",
+                caption: wallPurlinHeightsCaption,
                 sections: bill.wallPurlins ? [bill.wallPurlins] : [],
               },
             ].map((block) => (

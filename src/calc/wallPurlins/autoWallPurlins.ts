@@ -153,7 +153,20 @@ export type WallPurlinsAutoFailure =
   | { ok: false; reason: "unsupported-covering"; coveringType: string };
 
 export type WallPurlinsAutoResult =
-  | { ok: true; corner: WallPurlinZoneResult; regular: WallPurlinZoneResult }
+  | {
+      ok: true;
+      /**
+       * Высота, по которой считалась ЭТА стена, м: у торцевой — до конька,
+       * у продольной — до карниза. Возвращается наружу намеренно: сам
+       * калькулятор тип стены не знает и берёт что дадут в `Лист1!B12`,
+       * поэтому подмена одной высоты другой ничем бы себя не выдала.
+       */
+      wallHeight_m: number;
+      /** Длина этой стены, м: у торцевой — пролёт, у продольной — длина здания. */
+      wallLength_m: number;
+      corner: WallPurlinZoneResult;
+      regular: WallPurlinZoneResult;
+    }
   | WallPurlinsAutoFailure;
 
 /** Одинаковых стен на здании (продольных — две, торцевых — две). */
@@ -328,5 +341,11 @@ export function computeWallPurlinsAuto(input: WallPurlinsAutoInput): WallPurlins
   const regular = computeZone(input, "regular", regularLength);
   if ("ok" in regular) return regular;
 
-  return { ok: true, corner, regular };
+  return {
+    ok: true,
+    wallHeight_m: input.wallHeight_m,
+    wallLength_m: input.wallLength_m,
+    corner,
+    regular,
+  };
 }
