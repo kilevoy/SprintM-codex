@@ -1,4 +1,6 @@
 import type { ProjectResult } from "../project/computeProject";
+import { displayWallEnvelopeProfileName } from "../wallEnvelope/wallEnvelope";
+import { wallEnvelopeProfilePrice } from "../wallEnvelope/wallEnvelopePricing";
 
 export interface BillRow {
   name: string;
@@ -40,6 +42,16 @@ export interface Bill {
   totalWithPackaging: number | null;
   /** «Вес здания» (F154). */
   buildingMass_kg: number;
+  /**
+   * Стеновая обвязка профнастильных стен — прогоны и кронштейны.
+   *
+   * Держится ОТДЕЛЬНО и НЕ входит в итоги проекта: объёмы сверены с
+   * расчётами расчётчика по трём объектам, а из цен подтверждена только
+   * цена самого профиля (ведомость 21876: 314,0 и 402,2 ₽/п.м. против
+   * 313,95 и 402,15 в прайсе). Цены кронштейнов в SprintM нет вовсе,
+   * поэтому включать раздел в стоимость пока нельзя.
+   */
+  wallEnvelope: BillSection | null;
 }
 
 /** Накладные расходы — 0,02 во всех разделах обеих ведомостей. */
@@ -83,7 +95,48 @@ function sumOrNull(values: (number | null)[]): number | null {
  * Итоги разделов сверяются с ячейками исходника — F32, F44, F70, F81,
  * F100, F114, F147 — и это проверяется тестом на обоих реальных проектах.
  */
-export function buildBill(project: ProjectResult, supplyScope: "full" | "frame-roof" = "full"): Bill {
+/**
+ * Строки стеновой обвязки: прогоны по профилям плюс кронштейны.
+ * Объёмы — из автоподбора, цена профиля — из прайса ИНСИ.
+ */
+function wallEnvelopeSection(project: ProjectResult): BillSection | null {
+  const auto = project.wallEnvelopeAuto;
+  if (!auto) return null;
+
+  const rows: BillRow[] = auto.takeoff.lines.map((line) => {
+    const price = wallEnvelopeProfilePrice(line.profile);
+    return {
+      name: `${displayWallEnvelopeProfileName(line.profile.profile)} (${line.profile.material})`,
+      count: line.profileLength_m,
+      unit: "п.м.",
+      unitPrice: price?.pricePerMeter ?? null,
+      cost: price === null ? null : price.pricePerMeter * line.profileLength_m,
+      mass_kg: line.mass_kg,
+      note:
+        price === null
+          ? "в прайсе нет этой марки стали для такой толщины"
+          : undefined,
+    };
+  });
+
+  rows.push({
+    name: "Кронштейны стеновой обвязки",
+    count: auto.takeoff.brackets.count,
+    unit: "шт.",
+    unitPrice: null,
+    cost: null,
+    mass_kg: auto.takeoff.brackets.mass_kg,
+    note: "масса сверена с объектными ведомостями, цены в SprintM нет",
+  });
+
+  // Ячейки объектной ведомости, где этот блок стоит у расчётчика.
+  return section("Стеновая обвязка", "B34:B38", rows, { overhead: false });
+}
+
+export function buildBill(
+  project: ProjectResult,
+  supplyScope: "full" | "frame-roof" | "frame-roof-profnastil" = "full",
+): Bill {
   const {
     frameTakeoff,
     purlinLayout,
@@ -255,12 +308,17 @@ export function buildBill(project: ProjectResult, supplyScope: "full" | "frame-r
     packaging,
     totalWithPackaging: recommendedPrice === null ? null : recommendedPrice + (packaging ?? 0),
     buildingMass_kg: [...materials, ...additional].reduce((s, x) => s + x.totalMass_kg, 0),
+    wallEnvelope: wallEnvelopeSection(project),
   };
 
-  if (supplyScope !== "frame-roof") return fullBill;
+  if (supplyScope === "full") return fullBill;
 
   // Режим поставки «только каркас»: оставляем рамы, кровельные прогоны,
   // связи и крепёж каркаса. ПС 145х1,5 — стеновой прогон и исключается.
+  //
+  // Стеновая обвязка выпадает только под сэндвич-панель: панель работает
+  // по стойкам сама и прогоны ей не нужны. Под профнастил каркас без
+  // обвязки не поставляется — листу не на что опираться.
   const recalcSection = (source: BillSection, rows: BillRow[]): BillSection => {
     const subtotalCost = rows.some((row) => row.cost === null)
       ? null
@@ -293,6 +351,9 @@ export function buildBill(project: ProjectResult, supplyScope: "full" | "frame-r
     recommendedPrice: supplyRecommendedPrice,
     packaging: supplyPackaging,
     totalWithPackaging: supplyRecommendedPrice === null ? null : supplyRecommendedPrice + (supplyPackaging ?? 0),
-    buildingMass_kg: [...supplyMaterials, ...supplyAdditional].reduce((sum, section) => sum + section.totalMass_kg, 0),
+    buildingMass_kg:
+      [...supplyMaterials, ...supplyAdditional].reduce((sum, section) => sum + section.totalMass_kg, 0) +
+      (supplyScope === "frame-roof-profnastil" ? (fullBill.wallEnvelope?.totalMass_kg ?? 0) : 0),
+    wallEnvelope: supplyScope === "frame-roof-profnastil" ? fullBill.wallEnvelope : null,
   };
 }

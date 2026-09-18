@@ -22,6 +22,9 @@ import { SPANS, type ResponsibilityLevel, type Span } from "./types/common";
 // позволяет выбрать нужный осознанно.
 const settlementNames = getAllSettlementNames();
 
+/** Состав поставки — см. ProjectInputs.supplyScope. */
+type SupplyScope = NonNullable<ProjectInputs["supplyScope"]>;
+
 const roofingTypes = roofingTypesRaw as { type: string; selfWeight_kg_m2: number }[];
 
 /**
@@ -186,7 +189,7 @@ function OpeningGroupsEditor({
 
 export function App() {
   const [city, setCity] = useState("Челябинск");
-  const [supplyScope, setSupplyScope] = useState<"full" | "frame-roof">("full");
+  const [supplyScope, setSupplyScope] = useState<SupplyScope>("full");
   // Тип местности по СП — вход будущего подбора оконных ригелей.
   const [terrainType, setTerrainType] = useState<"A" | "B" | "C">("B");
   // Ручной ввод нагрузок — для площадок, которых нет в справочнике.
@@ -212,6 +215,11 @@ export function App() {
   // как у сэндвич-панели, это баг; см. computeProject.ts).
   const [wallCladdingMaterial, setWallCladdingMaterial] = useState<"СП" | "профнастил">("СП");
   const [wallProfnastilThickness, setWallProfnastilThickness] = useState(0.5);
+  // Стеновая обвязка: высоту профиля расчётчик зажимает руками (чтобы
+  // обшивка легла в одну плоскость), шаг стоек торца пустой — «по числу
+  // стоек фахверка». См. docs/parity/wall-envelope-engine-extraction.md.
+  const [wallEnvelopeProfileHeight, setWallEnvelopeProfileHeight] = useState(145);
+  const [gablePostSpacing, setGablePostSpacing] = useState("");
   const [roofProfnastilThickness, setRoofProfnastilThickness] = useState(0.7);
   const [openings, setOpenings] = useState<OpeningsInput>(DEFAULT_OPENINGS);
   const [postSpacing, setPostSpacing] = useState(2);
@@ -295,6 +303,13 @@ export function App() {
         wallCladdingMaterial,
         wallProfnastilThickness_mm: wallProfnastilThickness,
         roofProfnastilThickness_mm: roofProfnastilThickness,
+        wallEnvelopeAuto:
+          wallCladdingMaterial === "профнастил"
+            ? {
+                profileHeight_mm: wallEnvelopeProfileHeight > 0 ? wallEnvelopeProfileHeight : undefined,
+                gablePostSpacing_m: Number(gablePostSpacing) > 0 ? Number(gablePostSpacing) : undefined,
+              }
+            : undefined,
       }),
     [
       city,
@@ -331,6 +346,8 @@ export function App() {
       columnOverride,
       wallCladdingMaterial,
       wallProfnastilThickness,
+      wallEnvelopeProfileHeight,
+      gablePostSpacing,
       roofProfnastilThickness,
     ],
   );
@@ -452,6 +469,12 @@ export function App() {
     setWallCladdingMaterial(next.wallCladdingMaterial ?? "СП");
     setWallProfnastilThickness(next.wallProfnastilThickness_mm ?? 0.5);
     setRoofProfnastilThickness(next.roofProfnastilThickness_mm ?? 0.7);
+    setWallEnvelopeProfileHeight(next.wallEnvelopeAuto?.profileHeight_mm ?? 145);
+    setGablePostSpacing(
+      next.wallEnvelopeAuto?.gablePostSpacing_m === undefined
+        ? ""
+        : String(next.wallEnvelopeAuto.gablePostSpacing_m),
+    );
   }
 
   async function openFile(file: File) {
@@ -529,10 +552,13 @@ export function App() {
   const frameOnlyCost = supplyFrameLine?.cost === null || supplyFrameLine?.cost === undefined
     ? null
     : supplyFrameLine.cost - wallPurlinCost * 1.02;
-  const supplyCost = supplyScope === "frame-roof"
+  // Оба «каркасных» состава показывают одно и то же: отличаются они только
+  // тем, входит ли в поставку стеновая обвязка (она в стоимость пока не идёт).
+  const frameOnlyScope = supplyScope !== "full";
+  const supplyCost = frameOnlyScope
     ? frameOnlyCost
     : commercial.materialsWithPackaging;
-  const visibleCommercialLines = supplyScope === "frame-roof"
+  const visibleCommercialLines = frameOnlyScope
     ? commercial.lines.filter((line) => line.name === "Каркас")
     : commercial.lines.filter((line) => line.name !== "Окна, ворота, двери");
 
@@ -691,12 +717,18 @@ export function App() {
 
           <label>
             Состав поставки
-            <select value={supplyScope} onChange={(e) => setSupplyScope(e.target.value as "full" | "frame-roof")}>
+            <select
+              value={supplyScope}
+              onChange={(e) => setSupplyScope(e.target.value as SupplyScope)}
+            >
               <option value="full">полный комплект</option>
-              <option value="frame-roof">только каркас + кровельные прогоны</option>
+              <option value="frame-roof">только каркас под сэндвич-панель</option>
+              <option value="frame-roof-profnastil">только каркас под профнастил</option>
             </select>
             <span className="field-hint">
-              В режиме «только каркас» стены, панели, водосток и стеновая подсистема не входят в поставочный итог.
+              В режиме «только каркас» стены, панели и водосток не входят в поставочный итог.
+              Под сэндвич-панель стеновая обвязка не нужна — панель работает по стойкам;
+              под профнастил она входит в поставку, иначе листу не на что опираться.
             </span>
           </label>
 
@@ -892,6 +924,40 @@ export function App() {
               </span>
             )}
           </label>
+
+          {wallCladdingMaterial === "профнастил" && (
+            <>
+              <label>
+                Высота профиля обвязки, мм
+                <input
+                  type="number"
+                  min={0}
+                  step={5}
+                  value={wallEnvelopeProfileHeight}
+                  onChange={(e) => setWallEnvelopeProfileHeight(Number(e.target.value))}
+                />
+                <span className="field-hint">
+                  Все прогоны стены одной высоты, иначе обшивка не ляжет в плоскость.
+                  0 — подбирать высоту свободно.
+                </span>
+              </label>
+
+              <label>
+                Шаг стоек торца, м
+                <input
+                  type="number"
+                  min={0}
+                  step={0.05}
+                  placeholder="по числу стоек"
+                  value={gablePostSpacing}
+                  onChange={(e) => setGablePostSpacing(e.target.value)}
+                />
+                <span className="field-hint">
+                  Пусто — из числа стоек фахверка: пролёт / (стоек на торец + 1).
+                </span>
+              </label>
+            </>
+          )}
 
           <p className="hint span-2">
             Подбор сечений выполнен с учётом нагрузок текущего покрытия кровли
@@ -1716,6 +1782,10 @@ export function App() {
             {[
               { caption: "Материалы «ИНСИ»", sections: bill.materials },
               { caption: "Дополнительные материалы", sections: bill.additional },
+              {
+                caption: "Стеновая обвязка — объёмы сверены, в стоимость проекта пока не входит",
+                sections: bill.wallEnvelope ? [bill.wallEnvelope] : [],
+              },
             ].map((block) => (
               <Fragment key={block.caption}>
                 <tr className="bill-block">
@@ -1751,15 +1821,17 @@ export function App() {
                         </td>
                       </tr>
                     ))}
-                    <tr className="bill-sub">
-                      <td colSpan={4}>Накладные расходы 2%</td>
-                      <td className="num">
-                        {s.overheadCost === null
-                          ? "—"
-                          : Math.round(s.overheadCost).toLocaleString("ru-RU")}
-                      </td>
-                      <td />
-                    </tr>
+                    {s.title !== "Стеновая обвязка" && (
+                      <tr className="bill-sub">
+                        <td colSpan={4}>Накладные расходы 2%</td>
+                        <td className="num">
+                          {s.overheadCost === null
+                            ? "—"
+                            : Math.round(s.overheadCost).toLocaleString("ru-RU")}
+                        </td>
+                        <td />
+                      </tr>
+                    )}
                     <tr className="bill-total">
                       <td colSpan={4}>
                         Итого {s.title.toLowerCase()} <span className="cell">{s.sourceCell}</span>
@@ -1812,8 +1884,10 @@ export function App() {
       <section className="card summary-card" id="results">
         <h2>Итоговая сводка</h2>
         <p className="hint">
-          {supplyScope === "frame-roof"
-            ? "Состав поставки: только каркас и кровельные прогоны. Стеновая подсистема, ограждение и водосток исключены из поставочного итога."
+          {frameOnlyScope
+            ? (supplyScope === "frame-roof-profnastil"
+              ? "Состав поставки: каркас, кровельные прогоны и стеновая обвязка под профнастил. Обшивка, водосток и ограждение исключены из поставочного итога."
+              : "Состав поставки: только каркас и кровельные прогоны под сэндвич-панель. Стеновая обвязка не нужна: панель работает по стойкам.")
             : "Структура — как в коммерческой части исходной ведомости: три статьи материалов с упаковкой 2%, проёмы отдельной строкой сверх неё."}
         </p>
         <dl className="result-list">
@@ -1830,7 +1904,7 @@ export function App() {
               </dd>
             </Fragment>
           ))}
-          <dt>{supplyScope === "frame-roof" ? "Итого поставка каркаса" : "Итого без окон, ворот и дверей"}</dt>
+          <dt>{frameOnlyScope ? "Итого поставка каркаса" : "Итого без окон, ворот и дверей"}</dt>
           <dd className="summary-total">
             {supplyCost !== null
               ? Math.round(supplyCost).toLocaleString("ru-RU") + " ₽"
