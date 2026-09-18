@@ -137,6 +137,13 @@ export interface WallEnvelopeZoneResult {
   bracketMass_kg: number;
   /** Лист1!I49/I50 — масса профиля, кг. */
   profileMass_kg: number;
+  /**
+   * Лист1!E49/E50 «Масса на зону, кг» — то, что подборщик показывает
+   * расчётчику: ранг TQ, умноженный на число шагов рам в зоне
+   * (BGR7 = BGQ7 * ADI1). Это НЕ то же, что `profileMass_kg`: сюда входят
+   * и узловые сборки, и удвоенный погонный член формулы ранга.
+   */
+  zoneMass_kg: number;
   utilization: number;
 }
 
@@ -196,6 +203,13 @@ function computeZone(
       ? (rows * zoneLength_m) / input.framePitch_m
       : excelCeiling(rows * excelRound(zoneLength_m / input.framePitch_m, 1));
 
+  // ADI1 исходника: угловая зона делит длину без округления, рядовая —
+  // с округлением до одного знака.
+  const bays =
+    zone === "corner"
+      ? zoneLength_m / input.framePitch_m
+      : excelRound(zoneLength_m / input.framePitch_m, 1);
+
   return {
     zone,
     zoneLength_m,
@@ -208,6 +222,7 @@ function computeZone(
     bracketCount,
     bracketMass_kg: selection.profile.jointMass_kg * bracketCount,
     profileMass_kg: rows * zoneLength_m * selection.profile.massSection_kg_m,
+    zoneMass_kg: selection.score * bays,
     utilization: selection.utilization,
   };
 }

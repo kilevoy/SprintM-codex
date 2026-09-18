@@ -1,0 +1,417 @@
+{
+  "schemaVersion": 1,
+  "status": "estimator-saved-calculator-runs",
+  "scope": "engineering-quantities-only; no prices",
+  "calculationEngine": "значения прочитаны как сохранены расчётчиком; книги открывались только на чтение, SHA-256 до и после совпал",
+  "note": "Каждый файл — копия «Калькулятора ограждайки v1.5», сохранённая расчётчиком при работе над объектом. Входы Лист1 и выбранные профили взяты из неё как есть.",
+  "cases": [
+    {
+      "id": "21604-продольная",
+      "object": "21604",
+      "site": "Кропоткин",
+      "wall": "продольная",
+      "source": {
+        "fileName": "Калькулятор ограждайки v1.5 торец продольная.xlsx",
+        "sha256": "DAE79A7266A558D9DBDA71FB32958BADAA7330AE119AC17A877FA1AB9F43E44A",
+        "openedReadOnly": true,
+        "hashUnchanged": true
+      },
+      "inputs": {
+        "city": "Кропоткин",
+        "gammaN": 1,
+        "span_m": 18,
+        "buildingLength_m": 48,
+        "buildingHeight_m": 9.75,
+        "wallLength_m": 48,
+        "wallHeight_m": 7.5,
+        "framePitch_m": 5.35,
+        "terrain": "В",
+        "w0_kPa": 0.48,
+        "coveringType": "профлист",
+        "deckingMark": "С18-1150-0,5",
+        "maxStepOverride_mm": {
+          "corner": 0,
+          "regular": 0
+        },
+        "minStep_mm": {
+          "corner": 0,
+          "regular": 0
+        },
+        "momentFactorOverride": 0,
+        "profileHeight_mm": {
+          "max": 145,
+          "min": 145
+        },
+        "thicknessClass": {
+          "max": "любая",
+          "min": "любая"
+        }
+      },
+      "excel": {
+        "maxStep_mm": {
+          "corner": 1400,
+          "regular": 1500
+        },
+        "zoneLength_m": {
+          "corner": 10.7,
+          "regular": 37.3
+        },
+        "corner": {
+          "profile": "[-]ПС145х45х1,2",
+          "bracket": "МП350",
+          "step_mm": 1120,
+          "zoneMass_kg": 465.8494857599999,
+          "rows": 7
+        },
+        "regular": {
+          "profile": "[-]ПС145х45х1,2",
+          "bracket": "МП350",
+          "step_mm": 1500,
+          "zoneMass_kg": 1146.4189274999999,
+          "rows": 5
+        },
+        "totalMass_kg": 1612.2684132599998
+      }
+    },
+    {
+      "id": "21604-торцевая",
+      "object": "21604",
+      "site": "Кропоткин",
+      "wall": "торцевая",
+      "source": {
+        "fileName": "Калькулятор ограждайки v1.5 торец.xlsx",
+        "sha256": "668A7BB463BBD72B80B6728F356EE4AD98B4D50D75EDC1A242E35099DA988363",
+        "openedReadOnly": true,
+        "hashUnchanged": true
+      },
+      "inputs": {
+        "city": "Кропоткин",
+        "gammaN": 1,
+        "span_m": 18,
+        "buildingLength_m": 48,
+        "buildingHeight_m": 9.75,
+        "wallLength_m": 18,
+        "wallHeight_m": 9.75,
+        "framePitch_m": 6,
+        "terrain": "В",
+        "w0_kPa": 0.48,
+        "coveringType": "профлист",
+        "deckingMark": "С18-1150-0,5",
+        "maxStepOverride_mm": {
+          "corner": 0,
+          "regular": 0
+        },
+        "minStep_mm": {
+          "corner": 0,
+          "regular": 0
+        },
+        "momentFactorOverride": 0,
+        "profileHeight_mm": {
+          "max": 145,
+          "min": 145
+        },
+        "thicknessClass": {
+          "max": "любая",
+          "min": "любая"
+        }
+      },
+      "excel": {
+        "maxStep_mm": {
+          "corner": 1400,
+          "regular": 1500
+        },
+        "zoneLength_m": {
+          "corner": 12,
+          "regular": 6
+        },
+        "corner": {
+          "profile": "[-]ПС145х45х1,5",
+          "bracket": "МП390",
+          "step_mm": 1290,
+          "zoneMass_kg": 707.48383742,
+          "rows": 8
+        },
+        "regular": {
+          "profile": "[-]ПС145х45х1,2",
+          "bracket": "МП350",
+          "step_mm": 1480,
+          "zoneMass_kg": 260.13049251999996,
+          "rows": 7
+        },
+        "totalMass_kg": 967.61432994
+      }
+    },
+    {
+      "id": "21876-продольная",
+      "object": "21876",
+      "site": "Каргалейка",
+      "wall": "продольная",
+      "source": {
+        "fileName": "Калькулятор ограждайки v1.5 на длину 30м.xlsx",
+        "sha256": "172131613BEECAA3F73D3ECEE49698E7D9BAD636E21BD6FAE19B23DAF2A49EAF",
+        "openedReadOnly": true,
+        "hashUnchanged": true
+      },
+      "inputs": {
+        "city": "Каргалейка",
+        "gammaN": 0.8,
+        "span_m": 12,
+        "buildingLength_m": 30,
+        "buildingHeight_m": 6.5,
+        "wallLength_m": 30,
+        "wallHeight_m": 4.8,
+        "framePitch_m": 6,
+        "terrain": "В",
+        "w0_kPa": 0.3,
+        "coveringType": "профлист",
+        "deckingMark": "С18-1150-0,5",
+        "maxStepOverride_mm": {
+          "corner": 0,
+          "regular": 0
+        },
+        "minStep_mm": {
+          "corner": 0,
+          "regular": 0
+        },
+        "momentFactorOverride": 0,
+        "profileHeight_mm": {
+          "max": 145,
+          "min": 145
+        },
+        "thicknessClass": {
+          "max": "любая",
+          "min": "любая"
+        }
+      },
+      "excel": {
+        "maxStep_mm": {
+          "corner": 1500,
+          "regular": 1500
+        },
+        "zoneLength_m": {
+          "corner": 0,
+          "regular": 30
+        },
+        "corner": {
+          "profile": "[]ПП 145x45x1,5",
+          "bracket": "МП350",
+          "step_mm": 1420,
+          "zoneMass_kg": 0,
+          "rows": 4
+        },
+        "regular": {
+          "profile": "[]ПП 145x45x1,2",
+          "bracket": "МП350",
+          "step_mm": 1500,
+          "zoneMass_kg": 535.5721925,
+          "rows": 4
+        },
+        "totalMass_kg": 535.5721925
+      }
+    },
+    {
+      "id": "21876-торцевая",
+      "object": "21876",
+      "site": "Каргалейка",
+      "wall": "торцевая",
+      "source": {
+        "fileName": "Калькулятор ограждайки v1.5 на торец 12м.xlsx",
+        "sha256": "A2FC77ABD2B7AB939ED8340D11442DF9EF8CA55E37FBC9D7CB17B7CFD7B7E001",
+        "openedReadOnly": true,
+        "hashUnchanged": true
+      },
+      "inputs": {
+        "city": "Каргалейка",
+        "gammaN": 0.8,
+        "span_m": 12,
+        "buildingLength_m": 30,
+        "buildingHeight_m": 6.5,
+        "wallLength_m": 12,
+        "wallHeight_m": 6.5,
+        "framePitch_m": 4,
+        "terrain": "В",
+        "w0_kPa": 0.3,
+        "coveringType": "профлист",
+        "deckingMark": "С18-1150-0,5",
+        "maxStepOverride_mm": {
+          "corner": 0,
+          "regular": 0
+        },
+        "minStep_mm": {
+          "corner": 0,
+          "regular": 0
+        },
+        "momentFactorOverride": 0,
+        "profileHeight_mm": {
+          "max": 145,
+          "min": 145
+        },
+        "thicknessClass": {
+          "max": "любая",
+          "min": "любая"
+        }
+      },
+      "excel": {
+        "maxStep_mm": {
+          "corner": 1500,
+          "regular": 1500
+        },
+        "zoneLength_m": {
+          "corner": 8,
+          "regular": 4
+        },
+        "corner": {
+          "profile": "[]ПП 145x45x1,2",
+          "bracket": "МП350",
+          "step_mm": 1500,
+          "zoneMass_kg": 183.02407699999998,
+          "rows": 5
+        },
+        "regular": {
+          "profile": "[]ПП 145x45x1,2",
+          "bracket": "МП350",
+          "step_mm": 1500,
+          "zoneMass_kg": 91.51203849999999,
+          "rows": 5
+        },
+        "totalMass_kg": 274.53611549999994
+      }
+    },
+    {
+      "id": "22317-продольная",
+      "object": "22317",
+      "site": "Благовещенск",
+      "wall": "продольная",
+      "source": {
+        "fileName": "Подбор ограждайки для продольных стен.xlsx",
+        "sha256": "D2A73D4225F1C1DE6D4C8BF328D92BF9D97263A628ECB44CEEE52DB5135C5D17",
+        "openedReadOnly": true,
+        "hashUnchanged": true
+      },
+      "inputs": {
+        "city": "Благовещенск",
+        "gammaN": 1,
+        "span_m": 12,
+        "buildingLength_m": 45,
+        "buildingHeight_m": 7.4,
+        "wallLength_m": 45,
+        "wallHeight_m": 6.8,
+        "framePitch_m": 6,
+        "terrain": "В",
+        "w0_kPa": 0.3,
+        "coveringType": "профлист",
+        "deckingMark": "С18-1150-0,5",
+        "maxStepOverride_mm": {
+          "corner": 0,
+          "regular": 0
+        },
+        "minStep_mm": {
+          "corner": 0,
+          "regular": 0
+        },
+        "momentFactorOverride": 0,
+        "profileHeight_mm": {
+          "max": 170,
+          "min": 170
+        },
+        "thicknessClass": {
+          "max": "любая",
+          "min": "любая"
+        }
+      },
+      "excel": {
+        "maxStep_mm": {
+          "corner": 1500,
+          "regular": 1500
+        },
+        "zoneLength_m": {
+          "corner": 0,
+          "regular": 45
+        },
+        "corner": {
+          "profile": "[]ПП 170x45x1,5",
+          "bracket": "МП350",
+          "step_mm": 1370,
+          "zoneMass_kg": 0,
+          "rows": 5
+        },
+        "regular": {
+          "profile": "[]ПП 170x45x1,2",
+          "bracket": "МП350",
+          "step_mm": 1450,
+          "zoneMass_kg": 1112.7603641249996,
+          "rows": 5
+        },
+        "totalMass_kg": 1112.7603641249996
+      }
+    },
+    {
+      "id": "22317-торцевая",
+      "object": "22317",
+      "site": "Благовещенск",
+      "wall": "торцевая",
+      "source": {
+        "fileName": "Подбор ограждайки для торцевых стен.xlsx",
+        "sha256": "4E7341A6708BA06284B40D90620448CBA794CFF769960A0EEE47E8AF8723A63C",
+        "openedReadOnly": true,
+        "hashUnchanged": true
+      },
+      "inputs": {
+        "city": "Благовещенск",
+        "gammaN": 1,
+        "span_m": 12,
+        "buildingLength_m": 45,
+        "buildingHeight_m": 7.4,
+        "wallLength_m": 12,
+        "wallHeight_m": 7.4,
+        "framePitch_m": 6,
+        "terrain": "В",
+        "w0_kPa": 0.3,
+        "coveringType": "профлист",
+        "deckingMark": "С18-1150-0,5",
+        "maxStepOverride_mm": {
+          "corner": 0,
+          "regular": 0
+        },
+        "minStep_mm": {
+          "corner": 0,
+          "regular": 0
+        },
+        "momentFactorOverride": 0,
+        "profileHeight_mm": {
+          "max": 500,
+          "min": 0
+        },
+        "thicknessClass": {
+          "max": "любая",
+          "min": "любая"
+        }
+      },
+      "excel": {
+        "maxStep_mm": {
+          "corner": 1500,
+          "regular": 1500
+        },
+        "zoneLength_m": {
+          "corner": 0,
+          "regular": 12
+        },
+        "corner": {
+          "profile": "[-]ПС145х45х1,2",
+          "bracket": "МП350",
+          "step_mm": 1500,
+          "zoneMass_kg": 0,
+          "rows": 5
+        },
+        "regular": {
+          "profile": "[]ПП 170x45x1,2",
+          "bracket": "МП390",
+          "step_mm": 1500,
+          "zoneMass_kg": 296.73632499999997,
+          "rows": 5
+        },
+        "totalMass_kg": 296.73632499999997
+      }
+    }
+  ]
+}
