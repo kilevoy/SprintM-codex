@@ -55,20 +55,38 @@ describe("стеновые прогоны в ведомости", () => {
     expect(purlin?.unitPrice).toBeCloseTo(313.95, 2);
     expect(purlin?.cost).toBeCloseTo(720 * 313.95, 2);
 
+    // Кронштейн заказывается погонным метром заготовки, а не штуками:
+    // 21876!C38 = G38/0,75*0,2 = 90/0,75*0,2 = 24 п.м., 21876!E38 = 529,44.
     const brackets = purlins.rows.find((row) => row.name.startsWith("Кронштейны"));
     expect(brackets?.mass_kg).toBe(90);
-    expect(brackets?.cost).toBeNull();
-    expect(brackets?.note).toBeTruthy();
+    expect(brackets?.unit).toBe("п.м.");
+    expect(brackets?.count).toBeCloseTo(24, 9);
+    expect(brackets?.unitPrice).toBe(529.44);
+    // Ведомость 21876!F38 = 12 706,56 ₽.
+    expect(brackets?.cost).toBeCloseTo(12706.56, 2);
   });
 
-  it("не входит в стоимость проекта, пока цена кронштейнов не перенесена", () => {
+  it("блок «Стены» вместе с прогонами даёт ровно 21876!F45", () => {
+    // У расчётчика прогоны, кронштейны, уголки и профлист лежат в одном
+    // блоке «Стены», и накладные 2% (F44) начисляются на всё сразу:
+    //   (226 044 + 12 706,56 + 3 972,41 + 388 107,06) * 1,02 = 643 446,63
+    // SprintM режет тот же блок на три раздела, поэтому сверяем сумму.
+    const bill = buildBill(computeProject(hangar));
+    const walls = bill.materials.find((s) => s.title === "Стены")?.totalCost ?? 0;
+    const cladding = bill.additional.find((s) => s.title === "Стена")?.totalCost ?? 0;
+    const purlins = bill.wallPurlins?.totalCost ?? 0;
+    expect(walls + cladding + purlins).toBeCloseTo(643446.63, 1);
+  });
+
+  it("входит в стоимость проекта", () => {
     const bill = buildBill(computeProject(hangar));
     const withoutEnvelope = buildBill(computeProject({ ...hangar, wallPurlinsAuto: undefined }));
     expect(bill.wallPurlins).not.toBeNull();
     expect(withoutEnvelope.wallPurlins).toBeNull();
-    // Итоги проекта от появления раздела не меняются.
-    expect(bill.recommendedPrice).toBe(withoutEnvelope.recommendedPrice);
-    expect(bill.totalWithPackaging).toBe(withoutEnvelope.totalWithPackaging);
+    // Раздел добавляет к итогу ровно свою стоимость с накладными.
+    const delta = (bill.recommendedPrice ?? 0) - (withoutEnvelope.recommendedPrice ?? 0);
+    expect(delta).toBeCloseTo(bill.wallPurlins?.totalCost ?? 0, 6);
+    expect(delta).toBeCloseTo((720 * 313.95 + 12706.56) * 1.02, 2);
   });
 
   it("под сэндвич-панель каркас поставляется без прогонов", () => {
@@ -79,7 +97,7 @@ describe("стеновые прогоны в ведомости", () => {
   it("под профнастил каркас поставляется с прогонами", () => {
     const bill = buildBill(computeProject(hangar), "frame-roof-profnastil");
     expect(bill.wallPurlins).not.toBeNull();
-    // Обвязка входит в вес поставки, в отличие от сэндвич-варианта.
+    // Прогоны входят в вес поставки, в отличие от сэндвич-варианта.
     const sandwich = buildBill(computeProject(hangar), "frame-roof");
     expect(bill.buildingMass_kg).toBeGreaterThan(sandwich.buildingMass_kg);
     expect(bill.buildingMass_kg - sandwich.buildingMass_kg).toBeCloseTo(

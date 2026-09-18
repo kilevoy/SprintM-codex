@@ -96,6 +96,29 @@ function sumOrNull(values: (number | null)[]): number | null {
  * F100, F114, F147 — и это проверяется тестом на обоих реальных проектах.
  */
 /**
+ * Кронштейн стенового прогона заказывается НЕ штуками, а погонным метром
+ * заготовки. Пересчёт и цена сняты с трёх независимых ведомостей, во всех
+ * трёх строка «Кронштейны» устроена одинаково:
+ *
+ *   C38 = G38 / 0,75 * 0,2        ← п.м. из массы, кг
+ *   E38 = 529,44                  ← вписано руками, в прайсе ИНСИ не найдено
+ *
+ *   21876  90 кг → 24,0 п.м. × 529,44 = 12 706,56 ₽   (ведомость 12 706,56)
+ *   22258 117 кг → 31,2 п.м. × 529,44 = 16 518,53 ₽   (ведомость 16 519)
+ *   22304 207 кг → 55,2 п.м. × 529,44 = 29 225,08 ₽   (ведомость 29 225)
+ *
+ * Массу SprintM считает сам из подбора и на 21876 и 22258 попадает в
+ * ведомость ровно (90 и 117 кг), поэтому цена сходится до копейки.
+ *
+ * ВРЕМЕННОЕ РЕШЕНИЕ, как и у EXTRA_UNITS: цена взята из кэша ведомости,
+ * а не из прайса. Откуда она берётся — вопрос 5а расчётчику. Делитель
+ * 0,75 — коэффициент пересчёта ведомости, а не масса одного кронштейна:
+ * у сечения `[]` на 21876 масса узла `AA` = 1,5 кг (60 шт × 1,5 = 90 кг).
+ */
+const BRACKET_METERS_PER_KG = 0.2 / 0.75;
+const BRACKET_PRICE_PER_METER = 529.44;
+
+/**
  * Строки стеновых прогонов: прогоны по профилям плюс кронштейны.
  * Объёмы — из автоподбора, цена профиля — из прайса ИНСИ.
  */
@@ -119,18 +142,22 @@ function wallPurlinsSection(project: ProjectResult): BillSection | null {
     };
   });
 
+  const bracketMeters = auto.takeoff.brackets.mass_kg * BRACKET_METERS_PER_KG;
   rows.push({
     name: "Кронштейны стеновых прогонов",
-    count: auto.takeoff.brackets.count,
-    unit: "шт.",
-    unitPrice: null,
-    cost: null,
+    count: bracketMeters,
+    unit: "п.м.",
+    unitPrice: BRACKET_PRICE_PER_METER,
+    cost: bracketMeters * BRACKET_PRICE_PER_METER,
     mass_kg: auto.takeoff.brackets.mass_kg,
-    note: "масса сверена с объектными ведомостями, цены в SprintM нет",
+    note: `${auto.takeoff.brackets.count} шт.`,
   });
 
   // Ячейки объектной ведомости, где этот блок стоит у расчётчика.
-  return section("Стеновые прогоны", "B34:B38", rows, { overhead: false });
+  // Накладные 2% начисляются: в ведомости прогоны и кронштейны входят в
+  // тот же блок «Стены», что уголки и профлист, и F44 умножает на 1,02
+  // всё сразу. На 21876 «Стены» + «Стеновые прогоны» дают ровно F45.
+  return section("Стеновые прогоны", "B34:B38", rows);
 }
 
 export function buildBill(
@@ -294,7 +321,15 @@ export function buildBill(
   ];
   if (roofCladding) additional.push(section("Кровля", "F147", claddingRows(roofCladding.items)));
 
-  const materialsTotal = sumOrNull(materials.map((s) => s.totalCost));
+  // Стеновые прогоны — отдельный раздел ведомости SprintM, но в стоимость
+  // объекта они входят: в ведомости расчётчика они лежат внутри блока
+  // «Стены» и попадают в F45. Держать их вне итога значило бы занижать
+  // цену на четверть миллиона на 21876.
+  const wallPurlins = wallPurlinsSection(project);
+  const materialsTotal = sumOrNull([
+    ...materials.map((s) => s.totalCost),
+    ...(wallPurlins ? [wallPurlins.totalCost] : []),
+  ]);
   const additionalTotal = sumOrNull(additional.map((s) => s.totalCost));
   const recommendedPrice = sumOrNull([materialsTotal, additionalTotal]);
   const packaging = recommendedPrice === null ? null : recommendedPrice * PACKAGING_RATE;
@@ -307,8 +342,10 @@ export function buildBill(
     recommendedPrice,
     packaging,
     totalWithPackaging: recommendedPrice === null ? null : recommendedPrice + (packaging ?? 0),
-    buildingMass_kg: [...materials, ...additional].reduce((s, x) => s + x.totalMass_kg, 0),
-    wallPurlins: wallPurlinsSection(project),
+    buildingMass_kg:
+      [...materials, ...additional].reduce((s, x) => s + x.totalMass_kg, 0) +
+      (wallPurlins?.totalMass_kg ?? 0),
+    wallPurlins,
   };
 
   if (supplyScope === "full") return fullBill;
@@ -347,7 +384,14 @@ export function buildBill(
   const supplyAdditional = fullBill.additional
     .filter((section) => section.title === "Каркас")
     .map((section) => recalcSection(section, section.rows));
-  const supplyMaterialsTotal = sumOrNull(supplyMaterials.map((section) => section.totalCost));
+  // В режиме «каркас под профнастил» прогоны поставляются, значит и в
+  // цену входят — иначе поставка окажется дешевле своего же содержимого.
+  const supplyWallPurlins =
+    supplyScope === "frame-roof-profnastil" ? fullBill.wallPurlins : null;
+  const supplyMaterialsTotal = sumOrNull([
+    ...supplyMaterials.map((section) => section.totalCost),
+    ...(supplyWallPurlins ? [supplyWallPurlins.totalCost] : []),
+  ]);
   const supplyAdditionalTotal = sumOrNull(supplyAdditional.map((section) => section.totalCost));
   const supplyRecommendedPrice = sumOrNull([supplyMaterialsTotal, supplyAdditionalTotal]);
   const supplyPackaging = supplyRecommendedPrice === null ? null : supplyRecommendedPrice * PACKAGING_RATE;
@@ -361,7 +405,7 @@ export function buildBill(
     totalWithPackaging: supplyRecommendedPrice === null ? null : supplyRecommendedPrice + (supplyPackaging ?? 0),
     buildingMass_kg:
       [...supplyMaterials, ...supplyAdditional].reduce((sum, section) => sum + section.totalMass_kg, 0) +
-      (supplyScope === "frame-roof-profnastil" ? (fullBill.wallPurlins?.totalMass_kg ?? 0) : 0),
-    wallPurlins: supplyScope === "frame-roof-profnastil" ? fullBill.wallPurlins : null,
+      (supplyWallPurlins?.totalMass_kg ?? 0),
+    wallPurlins: supplyWallPurlins,
   };
 }
