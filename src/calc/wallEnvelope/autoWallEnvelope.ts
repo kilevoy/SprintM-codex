@@ -156,6 +156,80 @@ export type WallEnvelopeAutoResult =
   | { ok: true; corner: WallEnvelopeZoneResult; regular: WallEnvelopeZoneResult }
   | WallEnvelopeAutoFailure;
 
+/** Одинаковых стен на здании (продольных — две, торцевых — две). */
+export interface WallEnvelopeWallTakeoff {
+  wallCount: number;
+  corner: WallEnvelopeZoneResult;
+  regular: WallEnvelopeZoneResult;
+}
+
+export interface WallEnvelopeProfileLine {
+  profile: WallEnvelopeProfile;
+  /** Длина ЛИНИЙ обвязки, м. */
+  lineLength_m: number;
+  /** Длина ПРОФИЛЯ, м: парное сечение идёт в ведомость в два раза длиннее. */
+  profileLength_m: number;
+  mass_kg: number;
+}
+
+export interface WallEnvelopeBuildingTakeoff {
+  /** Строки ведомости, сгруппированные по профилю. */
+  lines: WallEnvelopeProfileLine[];
+  brackets: { count: number; mass_kg: number };
+  profileLength_m: number;
+  profileMass_kg: number;
+}
+
+/**
+ * Сколько профилей в одном сечении: у «[]», «][» и «[-]» их два, у «]» —
+ * один. Берётся из самого каталога отношением массы сечения к массе
+ * профиля, а не по списку обозначений.
+ */
+export function profilesPerLine(profile: WallEnvelopeProfile): number {
+  return Math.round(profile.massSection_kg_m / profile.massProfile_kg_m);
+}
+
+/**
+ * Свод по зданию: ведомость считает ПОГОННЫЕ МЕТРЫ ПРОФИЛЯ, поэтому
+ * парное сечение идёт в неё удвоенной длиной. Проверено на объектных
+ * ведомостях: 21876 — 720 п.м. = (4×30 + 5×12) × 2 стены × 2 профиля.
+ */
+export function wallEnvelopeBuildingTakeoff(
+  walls: readonly WallEnvelopeWallTakeoff[],
+): WallEnvelopeBuildingTakeoff {
+  const byProfile = new Map<string, WallEnvelopeProfileLine>();
+  let bracketCount = 0;
+  let bracketMass_kg = 0;
+
+  for (const wall of walls) {
+    for (const zone of [wall.corner, wall.regular]) {
+      if (zone.zoneLength_m <= 0) continue;
+      bracketCount += zone.bracketCount * wall.wallCount;
+      bracketMass_kg += zone.bracketMass_kg * wall.wallCount;
+
+      const lineLength_m = zone.rows * zone.zoneLength_m * wall.wallCount;
+      const line = byProfile.get(zone.profile.profile) ?? {
+        profile: zone.profile,
+        lineLength_m: 0,
+        profileLength_m: 0,
+        mass_kg: 0,
+      };
+      line.lineLength_m += lineLength_m;
+      line.profileLength_m += lineLength_m * profilesPerLine(zone.profile);
+      line.mass_kg += lineLength_m * zone.profile.massSection_kg_m;
+      byProfile.set(zone.profile.profile, line);
+    }
+  }
+
+  const lines = [...byProfile.values()].sort((a, b) => b.mass_kg - a.mass_kg);
+  return {
+    lines,
+    brackets: { count: bracketCount, mass_kg: bracketMass_kg },
+    profileLength_m: lines.reduce((sum, line) => sum + line.profileLength_m, 0),
+    profileMass_kg: lines.reduce((sum, line) => sum + line.mass_kg, 0),
+  };
+}
+
 function computeZone(
   input: WallEnvelopeAutoInput,
   zone: WallZone,

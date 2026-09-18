@@ -67,6 +67,10 @@ import {
   findWallEnvelopeProfiles,
   type WallEnvelopeProfileQuery,
 } from "../wallEnvelope/wallEnvelope";
+import {
+  computeWallEnvelopeAuto,
+  wallEnvelopeBuildingTakeoff,
+} from "../wallEnvelope/autoWallEnvelope";
 
 const roofingTypes = roofingTypesRaw as { type: string; selfWeight_kg_m2: number }[];
 
@@ -213,6 +217,28 @@ export interface ProjectInputs {
     edgeRowCorrection?: number;
     bracketSpacing_m?: number;
   };
+  /**
+   * Автоподбор стеновой обвязки по «Калькулятору ограждайки v1.5».
+   * Включается явно: два входа ниже расчётчик задаёт руками, и вывести их
+   * из габаритов объекта не получилось (см.
+   * docs/parity/wall-envelope-engine-extraction.md).
+   */
+  wallEnvelopeAuto?: {
+    /**
+     * Зажим высоты профиля, мм (Лист1!B33 = B34): все прогоны стены одной
+     * высоты, иначе обшивка не ляжет в плоскость. Расчётчик ставит его
+     * почти всегда, но это его решение, а не следствие расчёта: на 21604
+     * свободный подбор просит 220 мм, а в работу пошли 145 мм с большей
+     * толщиной. Поэтому значение не выводится, а задаётся.
+     */
+    profileHeight_mm?: number;
+    /**
+     * Шаг стоек фахверка торцевой стены, м. По умолчанию — из числа стоек
+     * (facadePostCount), что сходится с 21604 и 21876; на 22317 расчётчик
+     * взял другой шаг, так что вход остаётся переопределяемым.
+     */
+    gablePostSpacing_m?: number;
+  };
   /** Толщина профлиста кровли, мм — 0,5 или 0,7. Без разницы, если кровля не профлист. */
   roofProfnastilThickness_mm?: number;
 }
@@ -253,6 +279,7 @@ export function computeProject(inputs: ProjectInputs) {
     strutTube,
     extraTubeMass_t,
     postSpacing_m,
+    terrainType = "B",
     trussedVariant,
     mezzanine,
     columnOverride,
@@ -260,6 +287,7 @@ export function computeProject(inputs: ProjectInputs) {
     wallProfnastilThickness_mm = 0.5,
     roofProfnastilThickness_mm = 0.7,
     wallEnvelope: wallEnvelopeInput,
+    wallEnvelopeAuto: wallEnvelopeAutoInput,
   } = inputs;
 
   const wallIsProfnastil = wallCladdingMaterial === "профнастил";
@@ -668,6 +696,86 @@ export function computeProject(inputs: ProjectInputs) {
       })()
     : null;
 
+  // ---- Стеновая обвязка: автоподбор ---------------------------------
+  //
+  // Воспроизводит «Калькулятор ограждайки v1.5» по каждой стене отдельно:
+  // торцевая считается по высоте до конька, продольная — по карнизу, и у
+  // каждой свой шаг стоек. Сверено на шести расчётах, сохранённых
+  // расчётчиком по объектам 21604, 21876 и 22317 (90 из 90 величин), см.
+  // scripts/oracle/compare_wall_envelope_objects.mjs.
+  const wallEnvelopeAuto = (() => {
+    if (!wallIsProfnastil || !wallEnvelopeAutoInput) return null;
+    if (w0Kpa === null) {
+      approximations.push({
+        kind: "ограждение",
+        message: "Автоподбор стеновой обвязки пропущен: не определилось ветровое давление площадки.",
+      });
+      return null;
+    }
+
+    const ridgeHeight_m =
+      height_m + Math.tan((geometry.roofSlopeDeg * Math.PI) / 180) * (span / 2);
+    const pin = wallEnvelopeAutoInput.profileHeight_mm;
+    const gablePostSpacing_m =
+      wallEnvelopeAutoInput.gablePostSpacing_m ?? span / (facadePostCount(span) / 2 + 1);
+    const shared = {
+      crosswindWidth_m: length_m,
+      ridgeHeight_m,
+      terrain: terrainType,
+      w0_kPa: w0Kpa,
+      gammaN,
+      coveringType: "профлист",
+      deckingMark: `С18-1150-${String(wallProfnastilThickness_mm).replace(".", ",")}`,
+      minProfileHeight_mm: pin ?? 0,
+      maxProfileHeight_mm: pin ?? Number.POSITIVE_INFINITY,
+    };
+
+    const longWalls = computeWallEnvelopeAuto({
+      ...shared,
+      wallLength_m: length_m,
+      wallHeight_m: height_m,
+      framePitch_m: geometry.framePitch_m,
+    });
+    const endWalls = computeWallEnvelopeAuto({
+      ...shared,
+      wallLength_m: span,
+      wallHeight_m: ridgeHeight_m,
+      framePitch_m: gablePostSpacing_m,
+    });
+    if (!longWalls.ok || !endWalls.ok) {
+      const reason = longWalls.ok ? endWalls.ok || endWalls.reason : longWalls.reason;
+      approximations.push({
+        kind: "ограждение",
+        message: `Автоподбор стеновой обвязки не дал решения (${reason}); прогоны не включены.`,
+      });
+      return null;
+    }
+
+    const walls = [
+      { wallCount: 2, corner: longWalls.corner, regular: longWalls.regular },
+      { wallCount: 2, corner: endWalls.corner, regular: endWalls.regular },
+    ];
+    return {
+      status: "provisional" as const,
+      source: "Калькулятор ограждайки v1.5.xlsx" as const,
+      gablePostSpacing_m,
+      gablePostSpacingIsDerived: wallEnvelopeAutoInput.gablePostSpacing_m === undefined,
+      profileHeightPin_mm: pin ?? null,
+      longWalls,
+      endWalls,
+      takeoff: wallEnvelopeBuildingTakeoff(walls),
+    };
+  })();
+  if (wallEnvelopeAuto) {
+    approximations.push({
+      kind: "ограждение",
+      message:
+        "Стеновая обвязка подобрана автоматически по калькулятору ограждайки. " +
+        "Подбор сверен с шестью расчётами расчётчика по трём объектам, но в " +
+        "стоимость проекта пока не входит и в ведомость попадает отдельным блоком.",
+    });
+  }
+
   // ---- Коммерческая сводка ------------------------------------------
   // Раскладка по статьям исходной ведомости (строки 155–160).
   // «Каркас» = F32 + F100, «Стеновое» = F44 + F114,
@@ -792,6 +900,7 @@ export function computeProject(inputs: ProjectInputs) {
     envelope,
     wallCladding,
     wallEnvelope,
+    wallEnvelopeAuto,
     roofCladding,
     wallTrim,
     roofTrim,
