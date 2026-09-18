@@ -52,7 +52,7 @@
         "roofSheetArea_m2": 838.86,
         "wallScrews_4_8x20": null,
         "roofScrews_4_8x20": null,
-        "wallEnvelopeSubsystem": null,
+        "wallPurlinsSubsystem": null,
         "projectWithoutOpeningCosts": 5389578.431757849,
         "requiresCheck": true
       }
@@ -105,7 +105,7 @@
         "roofSheetArea_m2": 429.66,
         "wallScrews_4_8x20": null,
         "roofScrews_4_8x20": null,
-        "wallEnvelopeSubsystem": null,
+        "wallPurlinsSubsystem": null,
         "projectWithoutOpeningCosts": 3039102.034332527,
         "requiresCheck": true
       }

@@ -15,7 +15,7 @@
   не зависеть от внешней книги «Таблица нагрузок по городам.xlsx».
 
 .EXAMPLE
-  powershell -File scripts/oracle/run_wall_envelope_calculator.ps1 `
+  powershell -File scripts/oracle/run_wall_purlin_calculator.ps1 `
     -WorkbookPath 'Y:\...\Калькулятор ограждайки v1.5.xlsx' `
     -InputPath scenario.json -OutputPath result.json
 #>
@@ -35,7 +35,7 @@ $parsed = Get-Content -LiteralPath $InputPath -Raw -Encoding UTF8 | ConvertFrom-
 $scenarios = @()
 if ($parsed -is [System.Array]) { $scenarios = $parsed } else { $scenarios = @($parsed) }
 
-$workDir = Join-Path ([System.IO.Path]::GetTempPath()) ("wall-envelope-" + [Guid]::NewGuid().ToString('N'))
+$workDir = Join-Path ([System.IO.Path]::GetTempPath()) ("wall-purlin-" + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $workDir | Out-Null
 $copyPath = Join-Path $workDir ([System.IO.Path]::GetFileName($originalPath))
 Copy-Item -LiteralPath $originalPath -Destination $copyPath

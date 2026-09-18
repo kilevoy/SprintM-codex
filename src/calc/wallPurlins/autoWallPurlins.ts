@@ -2,9 +2,9 @@ import deckingRaw from "../../data/wallDeckingSpans.generated.json";
 import { excelCeiling, excelRound } from "./excelNumerics";
 import {
   requiredInsulationForCovering_mm,
-  selectWallEnvelopeProfile,
-} from "./selectWallEnvelopeProfile";
-import type { WallEnvelopeProfile } from "./types";
+  selectWallPurlinProfile,
+} from "./selectWallPurlinProfile";
+import type { WallPurlinProfile } from "./types";
 import { zoneWindPressureFactor, type TerrainType, type WallZone } from "./zoneWindPressure";
 
 interface DeckingSpanTable {
@@ -82,7 +82,7 @@ export function cornerZoneLength_m(
   return 2 * (bays < 0.5 ? 0 : excelCeiling(bays) * framePitch_m);
 }
 
-export interface WallEnvelopeAutoInput {
+export interface WallPurlinsAutoInput {
   /** Лист1!B7 (b) — размер здания поперёк ветра, участвует только в e = MIN(b; 2h). */
   crosswindWidth_m: number;
   /** Лист1!B8 (h) — высота по коньку. */
@@ -120,7 +120,7 @@ export interface WallEnvelopeAutoInput {
   momentFactorOverride?: number;
 }
 
-export interface WallEnvelopeZoneResult {
+export interface WallPurlinZoneResult {
   zone: WallZone;
   /** Длина зоны на этой стене, м (Лист1!E24 для угловой, E29 для рядовой). */
   zoneLength_m: number;
@@ -128,7 +128,7 @@ export interface WallEnvelopeZoneResult {
   deckingDesignLoad_kPa: number;
   maxStep_mm: number;
   step_mm: number;
-  profile: WallEnvelopeProfile;
+  profile: WallPurlinProfile;
   /** Лист1!F49/F50 — число рядов прогонов по высоте стены. */
   rows: number;
   /** Лист1!G49/G50 — число кронштейнов. */
@@ -147,34 +147,34 @@ export interface WallEnvelopeZoneResult {
   utilization: number;
 }
 
-export type WallEnvelopeAutoFailure =
+export type WallPurlinsAutoFailure =
   | { ok: false; zone: WallZone; reason: "decking-span"; designLoad_kPa: number }
   | { ok: false; zone: WallZone; reason: "no-profile"; maxStep_mm: number }
   | { ok: false; reason: "unsupported-covering"; coveringType: string };
 
-export type WallEnvelopeAutoResult =
-  | { ok: true; corner: WallEnvelopeZoneResult; regular: WallEnvelopeZoneResult }
-  | WallEnvelopeAutoFailure;
+export type WallPurlinsAutoResult =
+  | { ok: true; corner: WallPurlinZoneResult; regular: WallPurlinZoneResult }
+  | WallPurlinsAutoFailure;
 
 /** Одинаковых стен на здании (продольных — две, торцевых — две). */
-export interface WallEnvelopeWallTakeoff {
+export interface WallPurlinWallTakeoff {
   wallCount: number;
-  corner: WallEnvelopeZoneResult;
-  regular: WallEnvelopeZoneResult;
+  corner: WallPurlinZoneResult;
+  regular: WallPurlinZoneResult;
 }
 
-export interface WallEnvelopeProfileLine {
-  profile: WallEnvelopeProfile;
-  /** Длина ЛИНИЙ обвязки, м. */
+export interface WallPurlinLine {
+  profile: WallPurlinProfile;
+  /** Длина ЛИНИЙ прогонов, м. */
   lineLength_m: number;
   /** Длина ПРОФИЛЯ, м: парное сечение идёт в ведомость в два раза длиннее. */
   profileLength_m: number;
   mass_kg: number;
 }
 
-export interface WallEnvelopeBuildingTakeoff {
+export interface WallPurlinBuildingTakeoff {
   /** Строки ведомости, сгруппированные по профилю. */
-  lines: WallEnvelopeProfileLine[];
+  lines: WallPurlinLine[];
   brackets: { count: number; mass_kg: number };
   profileLength_m: number;
   profileMass_kg: number;
@@ -185,7 +185,7 @@ export interface WallEnvelopeBuildingTakeoff {
  * один. Берётся из самого каталога отношением массы сечения к массе
  * профиля, а не по списку обозначений.
  */
-export function profilesPerLine(profile: WallEnvelopeProfile): number {
+export function profilesPerLine(profile: WallPurlinProfile): number {
   return Math.round(profile.massSection_kg_m / profile.massProfile_kg_m);
 }
 
@@ -194,10 +194,10 @@ export function profilesPerLine(profile: WallEnvelopeProfile): number {
  * парное сечение идёт в неё удвоенной длиной. Проверено на объектных
  * ведомостях: 21876 — 720 п.м. = (4×30 + 5×12) × 2 стены × 2 профиля.
  */
-export function wallEnvelopeBuildingTakeoff(
-  walls: readonly WallEnvelopeWallTakeoff[],
-): WallEnvelopeBuildingTakeoff {
-  const byProfile = new Map<string, WallEnvelopeProfileLine>();
+export function wallPurlinBuildingTakeoff(
+  walls: readonly WallPurlinWallTakeoff[],
+): WallPurlinBuildingTakeoff {
+  const byProfile = new Map<string, WallPurlinLine>();
   let bracketCount = 0;
   let bracketMass_kg = 0;
 
@@ -231,10 +231,10 @@ export function wallEnvelopeBuildingTakeoff(
 }
 
 function computeZone(
-  input: WallEnvelopeAutoInput,
+  input: WallPurlinsAutoInput,
   zone: WallZone,
   zoneLength_m: number,
-): WallEnvelopeZoneResult | WallEnvelopeAutoFailure {
+): WallPurlinZoneResult | WallPurlinsAutoFailure {
   const windPressureFactor = zoneWindPressureFactor({
     w0_kPa: input.w0_kPa,
     ridgeHeight_m: input.ridgeHeight_m,
@@ -250,7 +250,7 @@ function computeZone(
     return { ok: false, zone, reason: "decking-span", designLoad_kPa };
   }
 
-  const selection = selectWallEnvelopeProfile({
+  const selection = selectWallPurlinProfile({
     minStep_mm: input.minStep_mm?.[zone] ?? 0,
     maxStep_mm: fromDecking,
     coveringType: input.coveringType,
@@ -302,13 +302,13 @@ function computeZone(
 }
 
 /**
- * Автоподбор стеновой обвязки одной стены: угловая и рядовая зоны целиком,
+ * Автоподбор стеновых прогонов одной стены: угловая и рядовая зоны целиком,
  * как это делает «Калькулятор ограждайки v1.5.xlsx» для заданных Лист1-входов.
  *
  * Высоту стены задаёт вызывающая сторона: для торцевой стены — по коньку,
  * для продольной — по карнизу (в книге это тот же Лист1!B12).
  */
-export function computeWallEnvelopeAuto(input: WallEnvelopeAutoInput): WallEnvelopeAutoResult {
+export function computeWallPurlinsAuto(input: WallPurlinsAutoInput): WallPurlinsAutoResult {
   if (requiredInsulationForCovering_mm(input.coveringType) !== 0) {
     // Утеплённые варианты («наша послойка») ни на одном расчёте не
     // проверялись: там включается ограничение шага по Лист1!D10:F10,

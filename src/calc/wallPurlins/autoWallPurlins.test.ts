@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
-  computeWallEnvelopeAuto,
+  computeWallPurlinsAuto,
   cornerZoneLength_m,
   deckingDesignLoad_kPa,
   maxDeckingSpan_mm,
-} from "./autoWallEnvelope";
+} from "./autoWallPurlins";
 
 /**
  * Эталон — «Калькулятор ограждайки v1.5.xlsx», пересчитанный Excel COM на
  * копии книги (оригинал не изменён). Полный протокол по десяти сценариям —
- * scripts/oracle/run_wall_envelope_calculator.ps1 +
- * scripts/oracle/compare_wall_envelope_calculator.mjs; здесь закреплён
+ * scripts/oracle/run_wall_purlin_calculator.ps1 +
+ * scripts/oracle/compare_wall_purlin_calculator.mjs; здесь закреплён
  * базовый сценарий книги, чтобы регрессия ловилась без Excel.
  *
  * Лист1: γn=0.8, a=24, b=24, h(конёк)=10.5, стена 24×9.3, шаг рам 6,
@@ -32,9 +32,9 @@ const baseInput = {
   maxProfileHeight_mm: 145,
 };
 
-describe("автоподбор стеновой обвязки", () => {
+describe("автоподбор стеновых прогонов", () => {
   it("угловая зона повторяет Лист1!B49:I49", () => {
-    const result = computeWallEnvelopeAuto(baseInput);
+    const result = computeWallPurlinsAuto(baseInput);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const { corner } = result;
@@ -50,7 +50,7 @@ describe("автоподбор стеновой обвязки", () => {
   });
 
   it("рядовая зона повторяет Лист1!B50:I50", () => {
-    const result = computeWallEnvelopeAuto(baseInput);
+    const result = computeWallPurlinsAuto(baseInput);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const { regular } = result;
@@ -66,7 +66,7 @@ describe("автоподбор стеновой обвязки", () => {
   });
 
   it("нагрузка на обшивку повторяет D5 обеих зон", () => {
-    const result = computeWallEnvelopeAuto(baseInput);
+    const result = computeWallPurlinsAuto(baseInput);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.corner.deckingDesignLoad_kPa).toBeCloseTo(0.6009607296, 12);
@@ -100,7 +100,7 @@ describe("автоподбор стеновой обвязки", () => {
     // Сценарий min-height-clamped-5m живого оракула: на шаге 1400 мм
     // 4,2/1,4 для Excel ровно 3 ряда, поэтому побеждает []ПП 145x45x1,2
     // с МП350, а не более сильный МП390 на шаге 1500.
-    const result = computeWallEnvelopeAuto({
+    const result = computeWallPurlinsAuto({
       crosswindWidth_m: 30,
       ridgeHeight_m: 4.5,
       wallLength_m: 30,
@@ -125,7 +125,7 @@ describe("автоподбор стеновой обвязки", () => {
   });
 
   it("утеплённое покрытие честно отклоняется, а не считается молча", () => {
-    const result = computeWallEnvelopeAuto({ ...baseInput, coveringType: "наше 150 мм" });
+    const result = computeWallPurlinsAuto({ ...baseInput, coveringType: "наше 150 мм" });
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.reason).toBe("unsupported-covering");

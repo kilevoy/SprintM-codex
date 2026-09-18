@@ -10,9 +10,9 @@
 - `cases.json` — полный набор сценариев живого Excel-оракула.
 - `check_baseline.mjs` — быстрая кроссплатформенная регрессия по сохранённому
   результату Excel, не требующая LibreOffice.
-- `inputs/21604-wall-envelope.json` — provisional-сценарий стеновой обвязки с
+- `inputs/21604-wall-purlins.json` — provisional-сценарий стеновых прогонов с
   происхождением каждого ввода.
-- `inputs/wall-envelope-candidates.json` — дополнительные сохранённые сценарии.
+- `inputs/wall-purlin-candidates.json` — дополнительные сохранённые сценарии.
 - `inputs/profnastil-candidates.json` — три объектные ведомости с профлистом:
   два холодных ангара и один пока неподдерживаемый утеплённый вариант.
 - `inputs/ten-object-parity.json` — контрольный корпус из десяти сохранённых
@@ -20,16 +20,16 @@
 - `inputs/ten-object-parity-round2.json` — второй корпус из десяти новых книг с
   отдельной классификацией ошибок самого отчёта (неполный итог, конфликт имени
   и ячеек, неподдерживаемый код нагрузки).
-- `validate_wall_envelope_scenarios.mjs` — проверка структуры, SHA-256,
+- `validate_wall_purlin_scenarios.mjs` — проверка структуры, SHA-256,
   происхождения и обязательных блокировок.
 
 Быстрая проверка базового сценария:
 
     npm run check:parity-baseline
 
-Проверка сценариев стеновой обвязки:
+Проверка сценариев стеновых прогонов:
 
-    npm run check:wall-envelope-scenarios
+    npm run check:wall-purlin-scenarios
 
 Эта проверка не подтверждает инженерные формулы и не переводит 21604 в
 `verified`. Она гарантирует, что реконструированные входы явно обозначены,

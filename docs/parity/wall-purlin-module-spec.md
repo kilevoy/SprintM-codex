@@ -1,4 +1,4 @@
-# Спецификация модуля стеновой обвязки
+# Спецификация модуля стеновых прогонов
 
 ## Статус и границы
 
@@ -6,7 +6,7 @@
 `provisional-author-restored-inputs`: расчётчик восстановил две книги запусков,
 но первоначальные файлы расчёта 21604 не сохранились.
 
-Первая версия должна рассчитывать обычную стеновую обвязку под профлист:
+Первая версия должна рассчитывать обычные стеновые прогоны под профлист:
 
 - продольную и торцевую стены отдельными запусками;
 - угловую и рядовую зоны;
@@ -21,7 +21,7 @@
 ## Входной контракт
 
 ```ts
-type WallEnvelopeInput = {
+type WallPurlinsInput = {
   city: string;
   responsibilityFactor: number;
   standard: "СП 20.13330" | "СП РК EN";
@@ -50,7 +50,7 @@ type WallEnvelopeInput = {
 ## Выходной контракт
 
 ```ts
-type WallEnvelopeZoneResult = {
+type WallPurlinZoneResult = {
   zone: "corner" | "regular";
   lengthM: number;
   profile: string | null;
@@ -104,8 +104,8 @@ type WallEnvelopeZoneResult = {
 | состояние v1.5 от 07.04.2026 | шаблон | ПП145; обе зоны; две стали | regression only |
 
 Точные входы, результаты и SHA-256 находятся в
-`scripts/oracle/inputs/21604-wall-envelope.json` и
-`scripts/oracle/inputs/wall-envelope-candidates.json`.
+`scripts/oracle/inputs/21604-wall-purlins.json` и
+`scripts/oracle/inputs/wall-purlin-candidates.json`.
 
 ## Условия начала реализации
 

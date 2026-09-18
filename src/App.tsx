@@ -215,10 +215,10 @@ export function App() {
   // как у сэндвич-панели, это баг; см. computeProject.ts).
   const [wallCladdingMaterial, setWallCladdingMaterial] = useState<"СП" | "профнастил">("СП");
   const [wallProfnastilThickness, setWallProfnastilThickness] = useState(0.5);
-  // Стеновая обвязка: высоту профиля расчётчик зажимает руками (чтобы
+  // Стеновые прогоны: высоту профиля расчётчик зажимает руками (чтобы
   // обшивка легла в одну плоскость), шаг стоек торца пустой — «по числу
-  // стоек фахверка». См. docs/parity/wall-envelope-engine-extraction.md.
-  const [wallEnvelopeProfileHeight, setWallEnvelopeProfileHeight] = useState(145);
+  // стоек фахверка». См. docs/parity/wall-purlin-engine-extraction.md.
+  const [wallPurlinProfileHeight, setWallPurlinProfileHeight] = useState(145);
   const [gablePostSpacing, setGablePostSpacing] = useState("");
   const [roofProfnastilThickness, setRoofProfnastilThickness] = useState(0.7);
   const [openings, setOpenings] = useState<OpeningsInput>(DEFAULT_OPENINGS);
@@ -303,10 +303,10 @@ export function App() {
         wallCladdingMaterial,
         wallProfnastilThickness_mm: wallProfnastilThickness,
         roofProfnastilThickness_mm: roofProfnastilThickness,
-        wallEnvelopeAuto:
+        wallPurlinsAuto:
           wallCladdingMaterial === "профнастил"
             ? {
-                profileHeight_mm: wallEnvelopeProfileHeight > 0 ? wallEnvelopeProfileHeight : undefined,
+                profileHeight_mm: wallPurlinProfileHeight > 0 ? wallPurlinProfileHeight : undefined,
                 gablePostSpacing_m: Number(gablePostSpacing) > 0 ? Number(gablePostSpacing) : undefined,
               }
             : undefined,
@@ -346,7 +346,7 @@ export function App() {
       columnOverride,
       wallCladdingMaterial,
       wallProfnastilThickness,
-      wallEnvelopeProfileHeight,
+      wallPurlinProfileHeight,
       gablePostSpacing,
       roofProfnastilThickness,
     ],
@@ -469,11 +469,11 @@ export function App() {
     setWallCladdingMaterial(next.wallCladdingMaterial ?? "СП");
     setWallProfnastilThickness(next.wallProfnastilThickness_mm ?? 0.5);
     setRoofProfnastilThickness(next.roofProfnastilThickness_mm ?? 0.7);
-    setWallEnvelopeProfileHeight(next.wallEnvelopeAuto?.profileHeight_mm ?? 145);
+    setWallPurlinProfileHeight(next.wallPurlinsAuto?.profileHeight_mm ?? 145);
     setGablePostSpacing(
-      next.wallEnvelopeAuto?.gablePostSpacing_m === undefined
+      next.wallPurlinsAuto?.gablePostSpacing_m === undefined
         ? ""
-        : String(next.wallEnvelopeAuto.gablePostSpacing_m),
+        : String(next.wallPurlinsAuto.gablePostSpacing_m),
     );
   }
 
@@ -553,7 +553,7 @@ export function App() {
     ? null
     : supplyFrameLine.cost - wallPurlinCost * 1.02;
   // Оба «каркасных» состава показывают одно и то же: отличаются они только
-  // тем, входит ли в поставку стеновая обвязка (она в стоимость пока не идёт).
+  // тем, входит ли в поставку стеновые прогоны (они в стоимость пока не идут).
   const frameOnlyScope = supplyScope !== "full";
   const supplyCost = frameOnlyScope
     ? frameOnlyCost
@@ -727,7 +727,7 @@ export function App() {
             </select>
             <span className="field-hint">
               В режиме «только каркас» стены, панели и водосток не входят в поставочный итог.
-              Под сэндвич-панель стеновая обвязка не нужна — панель работает по стойкам;
+              Под сэндвич-панель стеновые прогоны не нужны — панель работает по стойкам;
               под профнастил она входит в поставку, иначе листу не на что опираться.
             </span>
           </label>
@@ -928,13 +928,13 @@ export function App() {
           {wallCladdingMaterial === "профнастил" && (
             <>
               <label>
-                Высота профиля обвязки, мм
+                Высота стенового прогона, мм
                 <input
                   type="number"
                   min={0}
                   step={5}
-                  value={wallEnvelopeProfileHeight}
-                  onChange={(e) => setWallEnvelopeProfileHeight(Number(e.target.value))}
+                  value={wallPurlinProfileHeight}
+                  onChange={(e) => setWallPurlinProfileHeight(Number(e.target.value))}
                 />
                 <span className="field-hint">
                   Все прогоны стены одной высоты, иначе обшивка не ляжет в плоскость.
@@ -1783,8 +1783,8 @@ export function App() {
               { caption: "Материалы «ИНСИ»", sections: bill.materials },
               { caption: "Дополнительные материалы", sections: bill.additional },
               {
-                caption: "Стеновая обвязка — объёмы сверены, в стоимость проекта пока не входит",
-                sections: bill.wallEnvelope ? [bill.wallEnvelope] : [],
+                caption: "Стеновые прогоны — объёмы сверены, в стоимость проекта пока не входят",
+                sections: bill.wallPurlins ? [bill.wallPurlins] : [],
               },
             ].map((block) => (
               <Fragment key={block.caption}>
@@ -1821,7 +1821,7 @@ export function App() {
                         </td>
                       </tr>
                     ))}
-                    {s.title !== "Стеновая обвязка" && (
+                    {s.title !== "Стеновые прогоны" && (
                       <tr className="bill-sub">
                         <td colSpan={4}>Накладные расходы 2%</td>
                         <td className="num">
@@ -1886,8 +1886,8 @@ export function App() {
         <p className="hint">
           {frameOnlyScope
             ? (supplyScope === "frame-roof-profnastil"
-              ? "Состав поставки: каркас, кровельные прогоны и стеновая обвязка под профнастил. Обшивка, водосток и ограждение исключены из поставочного итога."
-              : "Состав поставки: только каркас и кровельные прогоны под сэндвич-панель. Стеновая обвязка не нужна: панель работает по стойкам.")
+              ? "Состав поставки: каркас, кровельные прогоны и стеновые прогоны под профнастил. Обшивка, водосток и ограждение исключены из поставочного итога."
+              : "Состав поставки: только каркас и кровельные прогоны под сэндвич-панель. Стеновые прогоны не нужны: панель работает по стойкам.")
             : "Структура — как в коммерческой части исходной ведомости: три статьи материалов с упаковкой 2%, проёмы отдельной строкой сверх неё."}
         </p>
         <dl className="result-list">

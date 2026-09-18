@@ -1,8 +1,8 @@
 /**
- * Сверка автоподбора стеновой обвязки с расчётами, которые расчётчик
+ * Сверка автоподбора стеновых прогонов с расчётами, которые расчётчик
  * реально сохранил по объектам.
  *
- * Каждый случай в scripts/oracle/inputs/wall-envelope-object-runs.json —
+ * Каждый случай в scripts/oracle/inputs/wall-purlin-object-runs.json —
  * это копия «Калькулятора ограждайки v1.5», сохранённая при работе над
  * конкретным объектом: в ней и введённые расчётчиком входы `Лист1`, и
  * подобранные книгой профили. Книги открывались только на чтение, SHA-256
@@ -11,11 +11,11 @@
  * Это сильнее синтетических сценариев: здесь нечего реконструировать —
  * входы не восстановлены по ведомости, а взяты из файла расчётчика.
  *
- *   npx vite-node scripts/oracle/compare_wall_envelope_objects.mjs
+ *   npx vite-node scripts/oracle/compare_wall_purlin_objects.mjs
  */
 import { readFileSync } from "node:fs";
 
-const CORPUS = "scripts/oracle/inputs/wall-envelope-object-runs.json";
+const CORPUS = "scripts/oracle/inputs/wall-purlin-object-runs.json";
 const TERRAIN = { А: "A", В: "B", С: "C" };
 /** Массы зон в книге показаны целыми, поэтому сверяются с округлением. */
 const MASS_TOLERANCE = 0.51;
@@ -89,7 +89,7 @@ function rowsFor(kase, auto) {
 }
 
 async function main() {
-  const { computeWallEnvelopeAuto } = await import("../../src/calc/wallEnvelope/autoWallEnvelope.ts");
+  const { computeWallPurlinsAuto } = await import("../../src/calc/wallPurlins/autoWallPurlins.ts");
   const corpus = JSON.parse(readFileSync(CORPUS, "utf-8"));
 
   let failed = 0;
@@ -100,7 +100,7 @@ async function main() {
       console.log(`✗ ${kase.id}: исходная книга изменилась, результат недействителен`);
       continue;
     }
-    const auto = computeWallEnvelopeAuto(caseToInput(kase));
+    const auto = computeWallPurlinsAuto(caseToInput(kase));
     if (!auto.ok) {
       failed += 1;
       console.log(`✗ ${kase.id}: SprintM не подобрал (${auto.reason})`);

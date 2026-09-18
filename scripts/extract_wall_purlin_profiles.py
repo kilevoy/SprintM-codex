@@ -10,9 +10,9 @@ NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 def col(ref):
     return "".join(x for x in ref if x.isalpha())
 
-parser = argparse.ArgumentParser(description="Extract the wall-envelope selector table from an Excel workbook.")
+parser = argparse.ArgumentParser(description="Extract the wall-purlin selector table from an Excel workbook.")
 parser.add_argument("workbook", type=Path)
-parser.add_argument("--output", type=Path, default=Path("src/data/wallEnvelopeProfiles.generated.json"))
+parser.add_argument("--output", type=Path, default=Path("src/data/wallPurlinProfiles.generated.json"))
 args = parser.parse_args()
 source = args.workbook.resolve()
 output = args.output

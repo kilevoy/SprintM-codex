@@ -12,8 +12,8 @@ SHA-256 исходной книги: `4A9343A1E3149954DEC0F91D5398528F18016A8423
 ## Статус (обновлено после полного разбора матрицы)
 
 Алгоритм автоподбора профиля и шага **полностью понят и воспроизведён**
-чистой функцией `selectWallEnvelopeProfile`
-(`src/calc/wallEnvelope/selectWallEnvelopeProfile.ts`), сверенной с живыми
+чистой функцией `selectWallPurlinProfile`
+(`src/calc/wallPurlins/selectWallPurlinProfile.ts`), сверенной с живыми
 ячейками книги до последней значащей цифры на двух независимых зонах одного
 расчёта (см. «Сверка» ниже). Это **не** равносильно подтверждённому
 паритету на реальном объекте — коэффициент ветровой нагрузки зоны (C3),
@@ -56,7 +56,7 @@ SHA-256 исходной книги: `4A9343A1E3149954DEC0F91D5398528F18016A8423
 узловой сборки.
 
 Этот каталог уже извлечён воспроизводимым скриптом
-`scripts/extract_wall_envelope_profiles.py` → `src/data/wallEnvelopeProfiles.generated.json`
+`scripts/extract_wall_purlin_profiles.py` → `src/data/wallPurlinProfiles.generated.json`
 (поля `family`, `sectionType`, `bracing`, `thickness_mm`(=M), `height_mm`(=N),
 `usageFactor`(=O), `material`(=P), `insulation_mm`(=U), `capacity_X`(=X),
 `jointFactor_Q`(=Q), `jointFactor_S`(=S), `massProfile_kg_m`(=Y),
@@ -149,7 +149,7 @@ F6  = 2,2 (угловая зона)   G6 = 1,4 (рядовая зона)  -- п�
 
 Коэффициент пространственной корреляции ν в C3 **не входит** — подпись
 `F4` в книге прямо говорит «Пиковая нагрузка без v». Это перенесено в
-`src/calc/wallEnvelope/zoneWindPressure.ts` (обе таблицы СП — там же) и
+`src/calc/wallPurlins/zoneWindPressure.ts` (обе таблицы СП — там же) и
 сверено с книгой: k(ze)=0,66 и ζ(ze)=1,053 на 10,5 м для типа «В»,
 F7=1,25200152, G7=0,79672824, C3=1,001601216 и 0,637382592 при γn=0,8.
 
@@ -243,9 +243,9 @@ B22=B27=0 (⇒ B24=B29=1500 по таблице профнастила), B32=0, 
 | Угловая | 1.001601216 | 1370 | `[]ПП 145x45x1,5` | МП390 | 233.41455363000006 |
 | Рядовая | 0.637382592 | 1380 | `[]ПП 145x45x1,2` | МП350 | 188.57523862 |
 
-`selectWallEnvelopeProfile` воспроизводит оба результата с точностью до 6
+`selectWallPurlinProfile` воспроизводит оба результата с точностью до 6
 знаков после запятой в `score` (см.
-`src/calc/wallEnvelope/selectWallEnvelopeProfile.test.ts`).
+`src/calc/wallPurlins/selectWallPurlinProfile.test.ts`).
 
 ## Сверка на реальных объектах
 
@@ -254,10 +254,10 @@ B22=B27=0 (⇒ B24=B29=1500 по таблице профнастила), B32=0, 
 реконструкции по ведомости: восстанавливать нечего.
 
 Найдено шесть таких копий по трём независимым объектам; все они собраны в
-`scripts/oracle/inputs/wall-envelope-object-runs.json` (имя файла, SHA-256,
+`scripts/oracle/inputs/wall-purlin-object-runs.json` (имя файла, SHA-256,
 подтверждение, что книга не изменилась) и сверяются скриптом
-`scripts/oracle/compare_wall_envelope_objects.mjs`
-(`npm run check:wall-envelope-objects`).
+`scripts/oracle/compare_wall_purlin_objects.mjs`
+(`npm run check:wall-purlin-objects`).
 
 | Объект | Стена | Шаг стоек | Зоны, м | Подбор книги |
 |---|---|---|---|---|
@@ -268,7 +268,7 @@ B22=B27=0 (⇒ B24=B29=1500 по таблице профнастила), B32=0, 
 | 22317 Благовещенск 12×45, γn=1, w0=0,3 | продольная 45×6,8 | 6 | 0,00 / 45,00 | `[]ПП 170x45x1,2`/МП350 шаг 1450, 5 рядов |
 | 22317 | торцевая 12×7,4 | 6 | 0,00 / 12,00 | `[]ПП 170x45x1,2`/МП390 шаг 1500, 5 рядов |
 
-`computeWallEnvelopeAuto` воспроизводит все шесть расчётов целиком: 90 из
+`computeWallPurlinsAuto` воспроизводит все шесть расчётов целиком: 90 из
 90 величин — максимальный шаг, протяжённости зон, профиль, кронштейн, шаг,
 число рядов, масса зоны и итог на стену.
 
@@ -297,12 +297,12 @@ B22=B27=0 (⇒ B24=B29=1500 по таблице профнастила), B32=0, 
 
 ## Подключение к расчёту объекта
 
-`computeProject` принимает необязательный блок `wallEnvelopeAuto` и считает
+`computeProject` принимает необязательный блок `wallPurlinsAuto` и считает
 обе стены сразу: продольную по карнизу и на длину здания, торцевую по
-коньку и на пролёт. Результат — `wallEnvelopeAuto.takeoff`: строки
+коньку и на пролёт. Результат — `wallPurlinsAuto.takeoff`: строки
 ведомости, сгруппированные по профилю, и кронштейны.
 
-Ведомость считает **погонные метры профиля**, а не линий обвязки: у
+Ведомость считает **погонные метры профиля**, а не линий прогонов: у
 парного сечения (`[]`, `][`, `[-]`) на метр линии идёт два метра профиля.
 Множитель берётся из самого каталога — отношением массы сечения к массе
 профиля, а не по списку обозначений.
@@ -339,7 +339,7 @@ B22=B27=0 (⇒ B24=B29=1500 по таблице профнастила), B32=0, 
 метраж прогонов записан формулой по целым стенам
 (`=5*2*12*2 + 4*2*30*2`). То есть прогон идёт поверх проёма, вырезается
 только лист обшивки: вычет площади профнастила есть, вычета прогонов —
-нет. Закреплено тестом в `src/calc/project/wallEnvelopeAuto.test.ts`.
+нет. Закреплено тестом в `src/calc/project/wallPurlinsAuto.test.ts`.
 
 ## Оконные ригели
 
@@ -367,7 +367,7 @@ O26 = (E24*B7 + E37*(2*B6 + B7)) * кол-во
 
 ## Что осталось (по-прежнему provisional)
 
-1. Стеновая обвязка **не входит в стоимость проекта**. Цена самого
+1. Стеновые прогоны **не входят в стоимость проекта**. Цена самого
    профиля сверена с ведомостью 21876 до копейки (313,95 против 314,0 и
    402,15 против 402,2), но цены кронштейнов в SprintM нет вовсе, поэтому
    раздел стоит рядом с итогами, а не внутри них.
@@ -385,7 +385,7 @@ O26 = (E24*B7 + E37*(2*B6 + B7)) * кол-во
 
 ## Живой оракул: прогон сценариев через саму книгу
 
-`scripts/oracle/run_wall_envelope_calculator.ps1` принимает JSON со
+`scripts/oracle/run_wall_purlin_calculator.ps1` принимает JSON со
 значениями ячеек `Лист1` (один сценарий или массив), **копирует книгу во
 временный каталог**, проставляет входы в КОПИИ, вызывает
 `CalculateFullRebuild`, читает `Лист1!B49:K50`, зоны и ветровой блок,
@@ -393,17 +393,17 @@ O26 = (E24*B7 + E37*(2*B6 + B7)) * кол-во
 до и после и попадает в отчёт: если он изменился, результат недействителен.
 Оригинал на запись не открывается никогда.
 
-`scripts/oracle/compare_wall_envelope_calculator.mjs` подаёт те же входы в
-`computeWallEnvelopeAuto` и сравнивает построчно все величины — профиль,
+`scripts/oracle/compare_wall_purlin_calculator.mjs` подаёт те же входы в
+`computeWallPurlinsAuto` и сравнивает построчно все величины — профиль,
 кронштейн, шаг, максимальный шаг, длины зон, число рядов, кронштейны,
 массы, `C3` и `D5`.
 
 ```powershell
-powershell -File scripts/oracle/run_wall_envelope_calculator.ps1 `
+powershell -File scripts/oracle/run_wall_purlin_calculator.ps1 `
   -WorkbookPath '<путь к книге>' `
-  -InputPath scripts/oracle/inputs/wall-envelope-calculator-scenarios.json `
-  -OutputPath scripts/oracle/expected/wall-envelope-calculator.json
+  -InputPath scripts/oracle/inputs/wall-purlin-calculator-scenarios.json `
+  -OutputPath scripts/oracle/expected/wall-purlin-calculator.json
 
-npx vite-node scripts/oracle/compare_wall_envelope_calculator.mjs -- `
-  scripts/oracle/expected/wall-envelope-calculator.json
+npx vite-node scripts/oracle/compare_wall_purlin_calculator.mjs -- `
+  scripts/oracle/expected/wall-purlin-calculator.json
 ```

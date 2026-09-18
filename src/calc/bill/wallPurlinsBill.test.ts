@@ -3,7 +3,7 @@ import { computeProject, type ProjectInputs } from "../project/computeProject";
 import { buildBill } from "./buildBill";
 
 /**
- * Стеновая обвязка в ведомости и в составах поставки.
+ * Стеновые прогоны в ведомости и в составах поставки.
  *
  * Объект — «Каргалейка» (21876): холодный ангар 12×30 с профнастилом,
  * нагрузки заданы вручную (города нет в справочнике). Шаг стоек торца
@@ -34,18 +34,18 @@ const hangar: ProjectInputs = {
   terrainType: "B",
   wallCladdingMaterial: "профнастил",
   wallProfnastilThickness_mm: 0.5,
-  wallEnvelopeAuto: { profileHeight_mm: 145, gablePostSpacing_m: 6 },
+  wallPurlinsAuto: { profileHeight_mm: 145, gablePostSpacing_m: 6 },
 };
 
-describe("стеновая обвязка в ведомости", () => {
+describe("стеновые прогоны в ведомости", () => {
   it("идёт отдельным разделом с прогонами и кронштейнами", () => {
     const bill = buildBill(computeProject(hangar));
-    const envelope = bill.wallEnvelope;
-    expect(envelope).not.toBeNull();
-    if (!envelope) return;
+    const purlins = bill.wallPurlins;
+    expect(purlins).not.toBeNull();
+    if (!purlins) return;
 
-    expect(envelope.title).toBe("Стеновая обвязка");
-    const purlin = envelope.rows.find((row) => row.name.startsWith("ПП 145x45x1,2"));
+    expect(purlins.title).toBe("Стеновые прогоны");
+    const purlin = purlins.rows.find((row) => row.name.startsWith("ПП 145x45x1,2"));
     expect(purlin).toBeDefined();
     // Ведомость 21876: 720 п.м. по 314,0 ₽ (прайс даёт 313,95).
     expect(purlin?.count).toBe(720);
@@ -53,7 +53,7 @@ describe("стеновая обвязка в ведомости", () => {
     expect(purlin?.unitPrice).toBeCloseTo(313.95, 2);
     expect(purlin?.cost).toBeCloseTo(720 * 313.95, 2);
 
-    const brackets = envelope.rows.find((row) => row.name.startsWith("Кронштейны"));
+    const brackets = purlins.rows.find((row) => row.name.startsWith("Кронштейны"));
     expect(brackets?.mass_kg).toBe(90);
     expect(brackets?.cost).toBeNull();
     expect(brackets?.note).toBeTruthy();
@@ -61,27 +61,27 @@ describe("стеновая обвязка в ведомости", () => {
 
   it("не входит в стоимость проекта, пока цена кронштейнов не перенесена", () => {
     const bill = buildBill(computeProject(hangar));
-    const withoutEnvelope = buildBill(computeProject({ ...hangar, wallEnvelopeAuto: undefined }));
-    expect(bill.wallEnvelope).not.toBeNull();
-    expect(withoutEnvelope.wallEnvelope).toBeNull();
+    const withoutEnvelope = buildBill(computeProject({ ...hangar, wallPurlinsAuto: undefined }));
+    expect(bill.wallPurlins).not.toBeNull();
+    expect(withoutEnvelope.wallPurlins).toBeNull();
     // Итоги проекта от появления раздела не меняются.
     expect(bill.recommendedPrice).toBe(withoutEnvelope.recommendedPrice);
     expect(bill.totalWithPackaging).toBe(withoutEnvelope.totalWithPackaging);
   });
 
-  it("под сэндвич-панель каркас поставляется без обвязки", () => {
+  it("под сэндвич-панель каркас поставляется без прогонов", () => {
     const bill = buildBill(computeProject(hangar), "frame-roof");
-    expect(bill.wallEnvelope).toBeNull();
+    expect(bill.wallPurlins).toBeNull();
   });
 
-  it("под профнастил каркас поставляется с обвязкой", () => {
+  it("под профнастил каркас поставляется с прогонами", () => {
     const bill = buildBill(computeProject(hangar), "frame-roof-profnastil");
-    expect(bill.wallEnvelope).not.toBeNull();
+    expect(bill.wallPurlins).not.toBeNull();
     // Обвязка входит в вес поставки, в отличие от сэндвич-варианта.
     const sandwich = buildBill(computeProject(hangar), "frame-roof");
     expect(bill.buildingMass_kg).toBeGreaterThan(sandwich.buildingMass_kg);
     expect(bill.buildingMass_kg - sandwich.buildingMass_kg).toBeCloseTo(
-      (bill.wallEnvelope?.totalMass_kg ?? 0),
+      (bill.wallPurlins?.totalMass_kg ?? 0),
       6,
     );
   });

@@ -1,29 +1,29 @@
-import profilesRaw from "../../data/wallEnvelopeProfiles.generated.json";
+import profilesRaw from "../../data/wallPurlinProfiles.generated.json";
 import type {
-  WallEnvelopeProfile,
-  WallEnvelopeZoneInput,
-  WallEnvelopeZoneTakeoff,
+  WallPurlinProfile,
+  WallPurlinZoneInput,
+  WallPurlinZoneTakeoff,
 } from "./types";
 
-interface WallEnvelopeProfileCatalog {
+interface WallPurlinProfileCatalog {
   sourceSha256: string;
-  rows: WallEnvelopeProfile[];
+  rows: WallPurlinProfile[];
 }
 
-const catalog = profilesRaw as WallEnvelopeProfileCatalog;
+const catalog = profilesRaw as WallPurlinProfileCatalog;
 
 /**
  * Удаляет только служебные маркеры схемы из имени Excel. Сечения, материал и
  * тип усиления не преобразуются: именно эти значения должны пройти сверку с
  * исходной книгой до автоматического подбора.
  */
-export function displayWallEnvelopeProfileName(profile: string): string {
+export function displayWallPurlinProfileName(profile: string): string {
   let start = 0;
   while (start < profile.length && (profile[start] === "[" || profile[start] === "]")) start += 1;
   return profile.slice(start).trim();
 }
 
-export interface WallEnvelopeProfileQuery {
+export interface WallPurlinProfileQuery {
   height_mm: number;
   thickness_mm: number;
   material?: string;
@@ -33,7 +33,7 @@ export interface WallEnvelopeProfileQuery {
 }
 
 /** Возвращает строки исходной таблицы, подходящие по явно заданным признакам. */
-export function findWallEnvelopeProfiles(query: WallEnvelopeProfileQuery): WallEnvelopeProfile[] {
+export function findWallPurlinProfiles(query: WallPurlinProfileQuery): WallPurlinProfile[] {
   return catalog.rows.filter((row) =>
     row.height_mm === query.height_mm &&
     row.thickness_mm === query.thickness_mm &&
@@ -54,12 +54,12 @@ export function findWallEnvelopeProfiles(query: WallEnvelopeProfileQuery): WallE
  * схемы стены и шага рам. До полной сверки листов это намеренно явный вход,
  * а не скрытая эвристика.
  */
-export function computeWallEnvelopeZone(
-  input: WallEnvelopeZoneInput,
-  profile: WallEnvelopeProfile,
-): WallEnvelopeZoneTakeoff {
+export function computeWallPurlinZone(
+  input: WallPurlinZoneInput,
+  profile: WallPurlinProfile,
+): WallPurlinZoneTakeoff {
   if (input.length_m < 0 || input.height_m < 0 || input.step_mm <= 0 || input.framePitch_m <= 0) {
-    throw new Error("Параметры зоны стеновой обвязки должны быть положительными");
+    throw new Error("Параметры зоны стеновых прогонов должны быть положительными");
   }
   const wallCount = input.wallCount ?? 1;
   const edgeRowCorrection = input.edgeRowCorrection ?? 0;
@@ -79,6 +79,6 @@ export function computeWallEnvelopeZone(
   };
 }
 
-export function wallEnvelopeCatalogSourceSha256(): string {
+export function wallPurlinCatalogSourceSha256(): string {
   return catalog.sourceSha256;
 }

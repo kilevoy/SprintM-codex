@@ -1,13 +1,13 @@
-import profilesRaw from "../../data/wallEnvelopeProfiles.generated.json";
+import profilesRaw from "../../data/wallPurlinProfiles.generated.json";
 import { excelCeiling } from "./excelNumerics";
-import type { WallEnvelopeProfile } from "./types";
+import type { WallPurlinProfile } from "./types";
 
-interface WallEnvelopeProfileCatalog {
+interface WallPurlinProfileCatalog {
   sourceSha256: string;
-  rows: WallEnvelopeProfile[];
+  rows: WallPurlinProfile[];
 }
 
-const catalog = profilesRaw as WallEnvelopeProfileCatalog;
+const catalog = profilesRaw as WallPurlinProfileCatalog;
 
 /**
  * Шаги перебора в «Расчет Угловая»/«Расчет Рядовая»: 500…3000 мм с шагом 10 мм
@@ -130,7 +130,7 @@ function studCountFactor(framePitch_m: number): number {
   return 3;
 }
 
-export interface WallEnvelopeSelectionInput {
+export interface WallPurlinSelectionInput {
   /** Минимальный/максимальный шаг зоны, мм (Лист1!B23:B24 или B28:B29). */
   minStep_mm: number;
   maxStep_mm: number;
@@ -166,9 +166,9 @@ export interface WallEnvelopeSelectionInput {
   momentFactorOverride?: number;
 }
 
-export interface WallEnvelopeSelectionResult {
+export interface WallPurlinSelectionResult {
   step_mm: number;
-  profile: WallEnvelopeProfile;
+  profile: WallPurlinProfile;
   score: number;
   utilization: number;
   windBendingMoment_kNm: number;
@@ -187,17 +187,17 @@ export interface WallEnvelopeSelectionResult {
  *    B33=B34=145): шаг 1370, []ПП 145x45x1,5/МП390, score 233.41455363000006;
  *  - рядовая зона (тот же объект): шаг 1380, []ПП 145x45x1,2/МП350,
  *    score 188.57523862.
- * См. docs/parity/wall-envelope-engine-extraction.md.
+ * См. docs/parity/wall-purlin-engine-extraction.md.
  */
-export function selectWallEnvelopeProfile(
-  input: WallEnvelopeSelectionInput,
-): WallEnvelopeSelectionResult | null {
+export function selectWallPurlinProfile(
+  input: WallPurlinSelectionInput,
+): WallPurlinSelectionResult | null {
   const requiredInsulation_mm = requiredInsulationForCovering_mm(input.coveringType);
   const studFactor = studCountFactor(input.framePitch_m);
   const studBaseWeight = studFactor * input.zoneHeight_m;
   const momentFactorOverride = input.momentFactorOverride ?? 0;
 
-  let best: WallEnvelopeSelectionResult | null = null;
+  let best: WallPurlinSelectionResult | null = null;
 
   for (let step_mm = STEP_MIN_mm; step_mm <= STEP_MAX_mm; step_mm += STEP_INCREMENT_mm) {
     if (step_mm < input.minStep_mm || step_mm > input.maxStep_mm) continue;
@@ -217,7 +217,7 @@ export function selectWallEnvelopeProfile(
       if (!ALLOWED_BRACKETS[profile.material]) return;
       // Q7/S7 в исходнике: разрешённость кронштейна и совместимость со
       // стойками — статические свойства строки в v1.5 (не зависят от
-      // сценария, см. docs/parity/wall-envelope-engine-extraction.md).
+      // сценария, см. docs/parity/wall-purlin-engine-extraction.md).
       if (!profile.jointFactor_Q) return;
       if (!profile.jointFactor_S) return;
       if (profile.thickness_mm > input.maxThicknessClass) return;
@@ -253,6 +253,6 @@ export function selectWallEnvelopeProfile(
   return best;
 }
 
-export function wallEnvelopeSelectionCatalogSourceSha256(): string {
+export function wallPurlinSelectionCatalogSourceSha256(): string {
   return catalog.sourceSha256;
 }

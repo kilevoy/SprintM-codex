@@ -63,14 +63,14 @@ import {
 import roofingTypesRaw from "../../data/roofingSelfWeight.json";
 import type { ResponsibilityLevel, Span } from "../../types/common";
 import {
-  computeWallEnvelopeZone,
-  findWallEnvelopeProfiles,
-  type WallEnvelopeProfileQuery,
-} from "../wallEnvelope/wallEnvelope";
+  computeWallPurlinZone,
+  findWallPurlinProfiles,
+  type WallPurlinProfileQuery,
+} from "../wallPurlins/wallPurlins";
 import {
-  computeWallEnvelopeAuto,
-  wallEnvelopeBuildingTakeoff,
-} from "../wallEnvelope/autoWallEnvelope";
+  computeWallPurlinsAuto,
+  wallPurlinBuildingTakeoff,
+} from "../wallPurlins/autoWallPurlins";
 
 const roofingTypes = roofingTypesRaw as { type: string; selfWeight_kg_m2: number }[];
 
@@ -87,8 +87,8 @@ export interface ProjectInputs {
    * Состав поставки:
    *  - `full` — полный комплект;
    *  - `frame-roof` — только каркас с кровельными прогонами под
-   *    сэндвич-панель: стеновая обвязка не нужна, панель работает по стойкам;
-   *  - `frame-roof-profnastil` — то же под профнастил: стеновая обвязка
+   *    сэндвич-панель: стеновые прогоны не нужны, панель работает по стойкам;
+   *  - `frame-roof-profnastil` — то же под профнастил: стеновые прогоны
    *    ВХОДИТ, иначе листу не на что опираться.
    */
   supplyScope?: "full" | "frame-roof" | "frame-roof-profnastil";
@@ -214,23 +214,23 @@ export interface ProjectInputs {
   /** Толщина профлиста стен, мм — 0,5 или 0,7. Без разницы, если стены не профлист. */
   wallProfnastilThickness_mm?: number;
   /**
-   * Явно подтверждённая строка подборщика стеновой обвязки. Пока подбор по
+   * Явно подтверждённая строка подборщика стеновых прогонов. Пока подбор по
    * нагрузке не перенесён полностью, отсутствие этого блока не меняет старый
    * расчёт и оставляет результат стеновых прогонов пустым.
    */
-  wallEnvelope?: {
-    profile: WallEnvelopeProfileQuery;
+  wallPurlins?: {
+    profile: WallPurlinProfileQuery;
     step_mm: number;
     edgeRowCorrection?: number;
     bracketSpacing_m?: number;
   };
   /**
-   * Автоподбор стеновой обвязки по «Калькулятору ограждайки v1.5».
+   * Автоподбор стеновых прогонов по «Калькулятору ограждайки v1.5».
    * Включается явно: два входа ниже расчётчик задаёт руками, и вывести их
    * из габаритов объекта не получилось (см.
-   * docs/parity/wall-envelope-engine-extraction.md).
+   * docs/parity/wall-purlin-engine-extraction.md).
    */
-  wallEnvelopeAuto?: {
+  wallPurlinsAuto?: {
     /**
      * Зажим высоты профиля, мм (Лист1!B33 = B34): все прогоны стены одной
      * высоты, иначе обшивка не ляжет в плоскость. Расчётчик ставит его
@@ -293,8 +293,8 @@ export function computeProject(inputs: ProjectInputs) {
     wallCladdingMaterial = "СП",
     wallProfnastilThickness_mm = 0.5,
     roofProfnastilThickness_mm = 0.7,
-    wallEnvelope: wallEnvelopeInput,
-    wallEnvelopeAuto: wallEnvelopeAutoInput,
+    wallPurlins: wallPurlinInput,
+    wallPurlinsAuto: wallPurlinsAutoInput,
   } = inputs;
 
   const wallIsProfnastil = wallCladdingMaterial === "профнастил";
@@ -602,52 +602,52 @@ export function computeProject(inputs: ProjectInputs) {
     ? computeProfnastilWallSection(envelope.wallArea, wallProfnastilThickness_mm)
       : computeWallCladdingSection(geometry, envelope.wallArea, wallPanel_mm);
 
-  const wallEnvelopeProfile =
-    wallIsProfnastil && wallEnvelopeInput
-      ? findWallEnvelopeProfiles(wallEnvelopeInput.profile)[0] ?? null
+  const wallPurlinProfile =
+    wallIsProfnastil && wallPurlinInput
+      ? findWallPurlinProfiles(wallPurlinInput.profile)[0] ?? null
       : null;
-  const wallEnvelope =
-    wallEnvelopeProfile && wallEnvelopeInput
+  const wallPurlins =
+    wallPurlinProfile && wallPurlinInput
       ? {
           status: "provisional" as const,
           source: "Калькулятор ограждайки v1.5.xlsx / Расчет Угловая" as const,
-          profile: wallEnvelopeProfile,
-          longWalls: computeWallEnvelopeZone(
+          profile: wallPurlinProfile,
+          longWalls: computeWallPurlinZone(
             {
               length_m,
               height_m,
-              step_mm: wallEnvelopeInput.step_mm,
+              step_mm: wallPurlinInput.step_mm,
               framePitch_m: geometry.framePitch_m,
               wallCount: 2,
-              edgeRowCorrection: wallEnvelopeInput.edgeRowCorrection,
-              bracketSpacing_m: wallEnvelopeInput.bracketSpacing_m,
+              edgeRowCorrection: wallPurlinInput.edgeRowCorrection,
+              bracketSpacing_m: wallPurlinInput.bracketSpacing_m,
             },
-            wallEnvelopeProfile,
+            wallPurlinProfile,
           ),
-          endWalls: computeWallEnvelopeZone(
+          endWalls: computeWallPurlinZone(
             {
               length_m: span,
               height_m: height_m + Math.tan((geometry.roofSlopeDeg * Math.PI) / 180) * (span / 2),
-              step_mm: wallEnvelopeInput.step_mm,
+              step_mm: wallPurlinInput.step_mm,
               framePitch_m: geometry.framePitch_m,
               wallCount: 2,
-              edgeRowCorrection: wallEnvelopeInput.edgeRowCorrection,
-              bracketSpacing_m: wallEnvelopeInput.bracketSpacing_m,
+              edgeRowCorrection: wallPurlinInput.edgeRowCorrection,
+              bracketSpacing_m: wallPurlinInput.bracketSpacing_m,
             },
-            wallEnvelopeProfile,
+            wallPurlinProfile,
           ),
         }
       : null;
-  if (wallIsProfnastil && wallEnvelopeInput && !wallEnvelopeProfile) {
+  if (wallIsProfnastil && wallPurlinInput && !wallPurlinProfile) {
     approximations.push({
       kind: "ограждение",
-      message: "Строка стеновой обвязки не найдена в извлечённом каталоге Excel; прогон не включён.",
+      message: "Строка стеновых прогонов не найдена в извлечённом каталоге Excel; прогон не включён.",
     });
-  } else if (wallEnvelope) {
+  } else if (wallPurlins) {
     approximations.push({
       kind: "ограждение",
       message:
-        "Стеновая обвязка рассчитана по явно выбранной строке калькулятора ограждайки; " +
+        "Стеновые прогоны рассчитаны по явно выбранной строке калькулятора ограждайки; " +
         "автоматический подбор по ветровой таблице Excel ещё не подтверждён паритетом.",
     });
   }
@@ -703,28 +703,28 @@ export function computeProject(inputs: ProjectInputs) {
       })()
     : null;
 
-  // ---- Стеновая обвязка: автоподбор ---------------------------------
+  // ---- Стеновые прогоны: автоподбор ---------------------------------
   //
   // Воспроизводит «Калькулятор ограждайки v1.5» по каждой стене отдельно:
   // торцевая считается по высоте до конька, продольная — по карнизу, и у
   // каждой свой шаг стоек. Сверено на шести расчётах, сохранённых
   // расчётчиком по объектам 21604, 21876 и 22317 (90 из 90 величин), см.
-  // scripts/oracle/compare_wall_envelope_objects.mjs.
-  const wallEnvelopeAuto = (() => {
-    if (!wallIsProfnastil || !wallEnvelopeAutoInput) return null;
+  // scripts/oracle/compare_wall_purlin_objects.mjs.
+  const wallPurlinsAuto = (() => {
+    if (!wallIsProfnastil || !wallPurlinsAutoInput) return null;
     if (w0Kpa === null) {
       approximations.push({
         kind: "ограждение",
-        message: "Автоподбор стеновой обвязки пропущен: не определилось ветровое давление площадки.",
+        message: "Автоподбор стеновых прогонов пропущен: не определилось ветровое давление площадки.",
       });
       return null;
     }
 
     const ridgeHeight_m =
       height_m + Math.tan((geometry.roofSlopeDeg * Math.PI) / 180) * (span / 2);
-    const pin = wallEnvelopeAutoInput.profileHeight_mm;
+    const pin = wallPurlinsAutoInput.profileHeight_mm;
     const gablePostSpacing_m =
-      wallEnvelopeAutoInput.gablePostSpacing_m ?? span / (facadePostCount(span) / 2 + 1);
+      wallPurlinsAutoInput.gablePostSpacing_m ?? span / (facadePostCount(span) / 2 + 1);
     const shared = {
       crosswindWidth_m: length_m,
       ridgeHeight_m,
@@ -737,13 +737,13 @@ export function computeProject(inputs: ProjectInputs) {
       maxProfileHeight_mm: pin ?? Number.POSITIVE_INFINITY,
     };
 
-    const longWalls = computeWallEnvelopeAuto({
+    const longWalls = computeWallPurlinsAuto({
       ...shared,
       wallLength_m: length_m,
       wallHeight_m: height_m,
       framePitch_m: geometry.framePitch_m,
     });
-    const endWalls = computeWallEnvelopeAuto({
+    const endWalls = computeWallPurlinsAuto({
       ...shared,
       wallLength_m: span,
       wallHeight_m: ridgeHeight_m,
@@ -753,7 +753,7 @@ export function computeProject(inputs: ProjectInputs) {
       const reason = longWalls.ok ? endWalls.ok || endWalls.reason : longWalls.reason;
       approximations.push({
         kind: "ограждение",
-        message: `Автоподбор стеновой обвязки не дал решения (${reason}); прогоны не включены.`,
+        message: `Автоподбор стеновых прогонов не дал решения (${reason}); прогоны не включены.`,
       });
       return null;
     }
@@ -766,18 +766,18 @@ export function computeProject(inputs: ProjectInputs) {
       status: "provisional" as const,
       source: "Калькулятор ограждайки v1.5.xlsx" as const,
       gablePostSpacing_m,
-      gablePostSpacingIsDerived: wallEnvelopeAutoInput.gablePostSpacing_m === undefined,
+      gablePostSpacingIsDerived: wallPurlinsAutoInput.gablePostSpacing_m === undefined,
       profileHeightPin_mm: pin ?? null,
       longWalls,
       endWalls,
-      takeoff: wallEnvelopeBuildingTakeoff(walls),
+      takeoff: wallPurlinBuildingTakeoff(walls),
     };
   })();
-  if (wallEnvelopeAuto) {
+  if (wallPurlinsAuto) {
     approximations.push({
       kind: "ограждение",
       message:
-        "Стеновая обвязка подобрана автоматически по калькулятору ограждайки. " +
+        "Стеновые прогоны подобраны автоматически по калькулятору ограждайки. " +
         "Подбор сверен с шестью расчётами расчётчика по трём объектам, но в " +
         "стоимость проекта пока не входит и в ведомость попадает отдельным блоком.",
     });
@@ -906,8 +906,8 @@ export function computeProject(inputs: ProjectInputs) {
     openingsCost,
     envelope,
     wallCladding,
-    wallEnvelope,
-    wallEnvelopeAuto,
+    wallPurlins,
+    wallPurlinsAuto,
     roofCladding,
     wallTrim,
     roofTrim,

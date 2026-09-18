@@ -1,5 +1,5 @@
 import pricesRaw from "../../data/framePGSPrices.json";
-import type { WallEnvelopeProfile } from "./types";
+import type { WallPurlinProfile } from "./types";
 
 interface PriceRow {
   name: string;
@@ -19,7 +19,7 @@ const priceRows = Object.values(pricesRaw as Record<string, PriceRow[]>).flat();
  * латинскую «x» и с пробелом, `[-]ПС145х45х1,2` — через кириллическую «х»
  * и без пробела. Ведущие символы — обозначение сечения, а не часть имени.
  */
-export function parseWallEnvelopeProfileName(profile: string): {
+export function parseWallPurlinProfileName(profile: string): {
   family: string;
   height_mm: number;
   width_mm: number;
@@ -38,14 +38,14 @@ export function parseWallEnvelopeProfileName(profile: string): {
 }
 
 /**
- * Имя позиции прайса ИНСИ для профиля стеновой обвязки.
+ * Имя позиции прайса ИНСИ для профиля стеновых прогонов.
  *
  * Марка стали в подборщике записана как «МП350»/«МП390», а в прайсе — как
  * суффикс «П350»/«П390»; у «МП220» суффикса нет. Обвязка идёт
  * оцинкованной: это внутренняя конструкция, снаружи её закрывает обшивка.
  */
-export function wallEnvelopePriceName(profile: WallEnvelopeProfile): string | null {
-  const parsed = parseWallEnvelopeProfileName(profile.profile);
+export function wallPurlinPriceName(profile: WallPurlinProfile): string | null {
+  const parsed = parseWallPurlinProfileName(profile.profile);
   if (!parsed) return null;
   const grade = /^МП(\d+)$/.exec(profile.material);
   const gradeSuffix = grade && grade[1] !== "220" ? ` П${grade[1]}` : "";
@@ -55,7 +55,7 @@ export function wallEnvelopePriceName(profile: WallEnvelopeProfile): string | nu
   );
 }
 
-export interface WallEnvelopePrice {
+export interface WallPurlinPrice {
   name: string;
   /** Цена за погонный метр ПРОФИЛЯ, ₽. */
   pricePerMeter: number;
@@ -64,14 +64,14 @@ export interface WallEnvelopePrice {
 }
 
 /**
- * Цена профиля обвязки по прайсу ИНСИ.
+ * Цена профиля прогона по прайсу ИНСИ.
  *
  * Сверено с объектной ведомостью 21876: `ПП 145х45х1,2` идёт там по
  * 314,0 ₽/п.м. при 2,14 кг/м, а прайс даёт 313,95 и 2,1378; `ПП
  * 145х45х1,5` — 402,2 против 402,15. То есть ведомость берёт `priceSale`.
  */
-export function wallEnvelopeProfilePrice(profile: WallEnvelopeProfile): WallEnvelopePrice | null {
-  const name = wallEnvelopePriceName(profile);
+export function wallPurlinProfilePrice(profile: WallPurlinProfile): WallPurlinPrice | null {
+  const name = wallPurlinPriceName(profile);
   if (name === null) return null;
   const row = priceRows.find((candidate) => candidate.name === name);
   if (!row) return null;

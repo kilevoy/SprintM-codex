@@ -10,15 +10,15 @@
     "lint": "eslint . --max-warnings 0",
     "preview": "vite preview",
     "check:references": "node scripts/check_reference_drift.mjs",
-    "check:wall-envelope-scenarios": "node scripts/oracle/validate_wall_envelope_scenarios.mjs",
+    "check:wall-purlin-scenarios": "node scripts/oracle/validate_wall_purlin_scenarios.mjs",
     "update:references": "node scripts/check_reference_drift.mjs --update",
     "check:parity-baseline": "node scripts/oracle/check_baseline.mjs",
-    "check:wall-envelope-parity": "vite-node scripts/oracle/compare_wall_envelope_calculator.mjs -- scripts/oracle/expected/wall-envelope-calculator.json",
-    "check:wall-envelope-objects": "vite-node scripts/oracle/compare_wall_envelope_objects.mjs",
+    "check:wall-purlin-parity": "vite-node scripts/oracle/compare_wall_purlin_calculator.mjs -- scripts/oracle/expected/wall-purlin-calculator.json",
+    "check:wall-purlin-objects": "vite-node scripts/oracle/compare_wall_purlin_objects.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run lint && npm run check:references && npm run check:wall-envelope-scenarios && npm run check:wall-envelope-parity && npm run check:wall-envelope-objects && npm run typecheck && npm test && npm run build"
+    "verify": "npm run lint && npm run check:references && npm run check:wall-purlin-scenarios && npm run check:wall-purlin-parity && npm run check:wall-purlin-objects && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "pdfjs-dist": "^6.3.289",

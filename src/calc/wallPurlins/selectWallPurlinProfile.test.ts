@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { selectWallEnvelopeProfile } from "./selectWallEnvelopeProfile";
+import { selectWallPurlinProfile } from "./selectWallPurlinProfile";
 
 /**
  * Оба сценария сверены напрямую с «Калькулятор ограждайки v1.5.xlsx»
  * (Excel COM, CalculateFullRebuild, файл не изменён — SHA-256 до/после
- * совпадает с docs/parity/wall-envelope-engine-extraction.md):
+ * совпадает с docs/parity/wall-purlin-engine-extraction.md):
  *
  * Лист1: Благовещенск, γn=0.8, пролёт 24, длина 24, высота конька 10.5,
  * длина стены 24, высота стены 9.3, шаг рам 6, СП 20.13330, профлист,
@@ -19,7 +19,7 @@ import { selectWallEnvelopeProfile } from "./selectWallEnvelopeProfile";
  * Рядовая зона: 'Расчет Рядовая'!C3 = 0.637382592, BGQ7=188.57523862,
  * BGS7=1380, BGT7="[]ПП 145x45x1,2", BGU7="МП350".
  */
-describe("selectWallEnvelopeProfile — Excel-сверенный перебор AWX:BGN", () => {
+describe("selectWallPurlinProfile — Excel-сверенный перебор AWX:BGN", () => {
   const common = {
     minStep_mm: 0,
     maxStep_mm: 1500,
@@ -33,7 +33,7 @@ describe("selectWallEnvelopeProfile — Excel-сверенный перебор 
   };
 
   it("угловая зона: шаг 1370, []ПП 145x45x1,5 / МП390", () => {
-    const result = selectWallEnvelopeProfile({
+    const result = selectWallPurlinProfile({
       ...common,
       windPressureFactor: 1.001601216,
     });
@@ -45,7 +45,7 @@ describe("selectWallEnvelopeProfile — Excel-сверенный перебор 
   });
 
   it("рядовая зона: шаг 1380, []ПП 145x45x1,2 / МП350", () => {
-    const result = selectWallEnvelopeProfile({
+    const result = selectWallPurlinProfile({
       ...common,
       windPressureFactor: 0.637382592,
     });
@@ -57,7 +57,7 @@ describe("selectWallEnvelopeProfile — Excel-сверенный перебор 
   });
 
   it("возвращает null, когда ни один шаг зоны не проходит по ограничению шага", () => {
-    const result = selectWallEnvelopeProfile({
+    const result = selectWallPurlinProfile({
       ...common,
       minStep_mm: 4000,
       maxStep_mm: 5000,

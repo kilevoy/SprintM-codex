@@ -2,19 +2,19 @@ import { describe, expect, it } from "vitest";
 import { computeProject, type ProjectInputs } from "./computeProject";
 
 /**
- * Подключение автоподбора стеновой обвязки к расчёту объекта.
+ * Подключение автоподбора стеновых прогонов к расчёту объекта.
  *
- * Здесь проверяется ИМЕННО обвязка входов: что торцевая стена считается по
+ * Здесь проверяется ИМЕННО передача входов: что торцевая стена считается по
  * высоте до конька, продольная — по карнизу, что у торца свой шаг стоек и
  * что зажим высоты профиля доходит до подбора.
  *
  * Сам инженерный паритет с «Калькулятором ограждайки» проверяется не
  * здесь, а на расчётах, сохранённых расчётчиком по объектам:
- * `npm run check:wall-envelope-objects` (90 из 90 величин по 21604, 21876
+ * `npm run check:wall-purlin-objects` (90 из 90 величин по 21604, 21876
  * и 22317). Разделение намеренное: там входы взяты из книги расчётчика, а
  * здесь computeProject выводит их сам из габаритов объекта, и эти два
  * набора не обязаны совпадать — см. «Что осталось» в
- * docs/parity/wall-envelope-engine-extraction.md.
+ * docs/parity/wall-purlin-engine-extraction.md.
  */
 const coldProfnastilHangar: ProjectInputs = {
   city: "Каргалейка",
@@ -44,13 +44,13 @@ const coldProfnastilHangar: ProjectInputs = {
   terrainType: "B",
   wallCladdingMaterial: "профнастил",
   wallProfnastilThickness_mm: 0.5,
-  wallEnvelopeAuto: { profileHeight_mm: 145 },
+  wallPurlinsAuto: { profileHeight_mm: 145 },
 };
 
-describe("автоподбор стеновой обвязки в расчёте объекта", () => {
+describe("автоподбор стеновых прогонов в расчёте объекта", () => {
   it("считает обе стены: торец по коньку, продольную по карнизу", () => {
     const result = computeProject(coldProfnastilHangar);
-    const auto = result.wallEnvelopeAuto;
+    const auto = result.wallPurlinsAuto;
     expect(auto).not.toBeNull();
     if (!auto) return;
 
@@ -69,22 +69,22 @@ describe("автоподбор стеновой обвязки в расчёте
   it("шаг стоек торца выводится из числа стоек фахверка", () => {
     const result = computeProject(coldProfnastilHangar);
     // Пролёт 12 м, 4 стойки на здание -> 2 на торец -> 3 пролёта по 4 м.
-    expect(result.wallEnvelopeAuto?.gablePostSpacing_m).toBeCloseTo(4, 9);
-    expect(result.wallEnvelopeAuto?.gablePostSpacingIsDerived).toBe(true);
+    expect(result.wallPurlinsAuto?.gablePostSpacing_m).toBeCloseTo(4, 9);
+    expect(result.wallPurlinsAuto?.gablePostSpacingIsDerived).toBe(true);
   });
 
   it("заданный шаг стоек торца перебивает выведенный", () => {
     const result = computeProject({
       ...coldProfnastilHangar,
-      wallEnvelopeAuto: { profileHeight_mm: 145, gablePostSpacing_m: 6 },
+      wallPurlinsAuto: { profileHeight_mm: 145, gablePostSpacing_m: 6 },
     });
-    expect(result.wallEnvelopeAuto?.gablePostSpacing_m).toBe(6);
-    expect(result.wallEnvelopeAuto?.gablePostSpacingIsDerived).toBe(false);
+    expect(result.wallPurlinsAuto?.gablePostSpacing_m).toBe(6);
+    expect(result.wallPurlinsAuto?.gablePostSpacingIsDerived).toBe(false);
   });
 
   it("зажим высоты профиля доходит до подбора", () => {
     const pinned = computeProject(coldProfnastilHangar);
-    for (const wall of [pinned.wallEnvelopeAuto?.longWalls, pinned.wallEnvelopeAuto?.endWalls]) {
+    for (const wall of [pinned.wallPurlinsAuto?.longWalls, pinned.wallPurlinsAuto?.endWalls]) {
       if (!wall?.ok) continue;
       expect(wall.regular.profile.height_mm).toBe(145);
       expect(wall.corner.profile.height_mm).toBe(145);
@@ -92,14 +92,14 @@ describe("автоподбор стеновой обвязки в расчёте
 
     const free = computeProject({
       ...coldProfnastilHangar,
-      wallEnvelopeAuto: {},
+      wallPurlinsAuto: {},
     });
-    expect(free.wallEnvelopeAuto?.profileHeightPin_mm).toBeNull();
+    expect(free.wallPurlinsAuto?.profileHeightPin_mm).toBeNull();
   });
 
-  it("ведомость обвязки считает погонные метры профиля, а не линий", () => {
+  it("ведомость прогонов считает погонные метры профиля, а не линий", () => {
     const result = computeProject(coldProfnastilHangar);
-    const takeoff = result.wallEnvelopeAuto?.takeoff;
+    const takeoff = result.wallPurlinsAuto?.takeoff;
     expect(takeoff).toBeDefined();
     if (!takeoff) return;
     expect(takeoff.lines.length).toBeGreaterThan(0);
@@ -124,9 +124,9 @@ describe("автоподбор стеновой обвязки в расчёте
     // расхождение в исходных данных, а не в расчёте.
     const result = computeProject({
       ...coldProfnastilHangar,
-      wallEnvelopeAuto: { profileHeight_mm: 145, gablePostSpacing_m: 6 },
+      wallPurlinsAuto: { profileHeight_mm: 145, gablePostSpacing_m: 6 },
     });
-    const takeoff = result.wallEnvelopeAuto?.takeoff;
+    const takeoff = result.wallPurlinsAuto?.takeoff;
     expect(takeoff).toBeDefined();
     if (!takeoff) return;
 
@@ -153,11 +153,11 @@ describe("автоподбор стеновой обвязки в расчёте
     });
 
     expect(withOpenings.envelope.wallArea).toBeLessThan(blank.envelope.wallArea);
-    expect(withOpenings.wallEnvelopeAuto?.takeoff.profileLength_m).toBe(
-      blank.wallEnvelopeAuto?.takeoff.profileLength_m,
+    expect(withOpenings.wallPurlinsAuto?.takeoff.profileLength_m).toBe(
+      blank.wallPurlinsAuto?.takeoff.profileLength_m,
     );
-    expect(withOpenings.wallEnvelopeAuto?.takeoff.brackets.count).toBe(
-      blank.wallEnvelopeAuto?.takeoff.brackets.count,
+    expect(withOpenings.wallPurlinsAuto?.takeoff.brackets.count).toBe(
+      blank.wallPurlinsAuto?.takeoff.brackets.count,
     );
   });
 
@@ -167,6 +167,6 @@ describe("автоподбор стеновой обвязки в расчёте
       wallCladdingMaterial: "СП",
       wallPanel_mm: 100,
     });
-    expect(result.wallEnvelopeAuto).toBeNull();
+    expect(result.wallPurlinsAuto).toBeNull();
   });
 });

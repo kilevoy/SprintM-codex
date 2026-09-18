@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  computeWallEnvelopeZone,
-  displayWallEnvelopeProfileName,
-  findWallEnvelopeProfiles,
-} from "./wallEnvelope";
+  computeWallPurlinZone,
+  displayWallPurlinProfileName,
+  findWallPurlinProfiles,
+} from "./wallPurlins";
 
 describe("wall envelope Excel catalogue", () => {
   it("keeps the original profile mass and exposes the source row", () => {
-    const rows = findWallEnvelopeProfiles({
+    const rows = findWallPurlinProfiles({
       height_mm: 145,
       thickness_mm: 1.2,
       material: "МП390",
@@ -18,11 +18,11 @@ describe("wall envelope Excel catalogue", () => {
     expect(rows.length).toBeGreaterThan(0);
     expect(rows[0].massSection_kg_m).toBeCloseTo(2.1378, 6);
     expect(rows[0].capacity_X).toBeGreaterThan(0);
-    expect(displayWallEnvelopeProfileName(rows[0].profile)).toContain("ПП 145x45x1,2");
+    expect(displayWallPurlinProfileName(rows[0].profile)).toContain("ПП 145x45x1,2");
   });
 
   it("reproduces the transparent Excel-style row and mass formulas", () => {
-    const profile = findWallEnvelopeProfiles({
+    const profile = findWallPurlinProfiles({
       height_mm: 145,
       thickness_mm: 1.2,
       material: "МП390",
@@ -30,7 +30,7 @@ describe("wall envelope Excel catalogue", () => {
       family: "ПП",
       sectionType: "]",
     })[0];
-    const takeoff = computeWallEnvelopeZone(
+    const takeoff = computeWallPurlinZone(
       {
         length_m: 30,
         height_m: 4,

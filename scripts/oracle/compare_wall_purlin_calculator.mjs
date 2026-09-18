@@ -1,16 +1,16 @@
 /**
- * Сверка автоподбора стеновой обвязки с «Калькулятором ограждайки».
+ * Сверка автоподбора стеновых прогонов с «Калькулятором ограждайки».
  *
- * Вход — отчёт run_wall_envelope_calculator.ps1 (живой Excel, пересчёт
+ * Вход — отчёт run_wall_purlin_calculator.ps1 (живой Excel, пересчёт
  * CalculateFullRebuild на копии книги; оригинал не меняется). Для каждого
- * сценария те же входы Лист1 подаются в computeWallEnvelopeAuto, и все
+ * сценария те же входы Лист1 подаются в computeWallPurlinsAuto, и все
  * выходные величины сравниваются построчно.
  *
  * Эталон здесь — сами формулы Excel, а не текущий результат SprintM.
  *
  * Запускать через vite-node, потому что расчётный модуль — TypeScript:
  *
- *   npx vite-node scripts/oracle/compare_wall_envelope_calculator.mjs -- <отчёт.json>
+ *   npx vite-node scripts/oracle/compare_wall_purlin_calculator.mjs -- <отчёт.json>
  */
 import { readFileSync } from "node:fs";
 
@@ -103,16 +103,16 @@ export function compareCase(kase, auto) {
 async function main() {
   const reportPath = process.argv[2];
   if (!reportPath) {
-    console.error("укажите путь к отчёту run_wall_envelope_calculator.ps1");
+    console.error("укажите путь к отчёту run_wall_purlin_calculator.ps1");
     process.exit(2);
   }
-  const { computeWallEnvelopeAuto } = await import("../../src/calc/wallEnvelope/autoWallEnvelope.ts");
+  const { computeWallPurlinsAuto } = await import("../../src/calc/wallPurlins/autoWallPurlins.ts");
   const report = loadReport(reportPath);
 
   let failed = 0;
   for (const kase of report.cases) {
     const input = scenarioToInput(kase.sheet1);
-    const result = compareCase(kase, computeWallEnvelopeAuto(input));
+    const result = compareCase(kase, computeWallPurlinsAuto(input));
     const bad = result.rows.filter((row) => !row.ok);
     if (result.fatal) {
       failed += 1;

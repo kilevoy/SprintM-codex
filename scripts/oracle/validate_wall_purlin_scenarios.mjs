@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "../..");
-const scenario = JSON.parse(readFileSync(resolve(root, "scripts/oracle/inputs/21604-wall-envelope.json"), "utf8"));
-const corpus = JSON.parse(readFileSync(resolve(root, "scripts/oracle/inputs/wall-envelope-candidates.json"), "utf8"));
+const scenario = JSON.parse(readFileSync(resolve(root, "scripts/oracle/inputs/21604-wall-purlins.json"), "utf8"));
+const corpus = JSON.parse(readFileSync(resolve(root, "scripts/oracle/inputs/wall-purlin-candidates.json"), "utf8"));
 const profnastil = JSON.parse(readFileSync(resolve(root, "scripts/oracle/inputs/profnastil-candidates.json"), "utf8"));
 const mixedCorpus = JSON.parse(readFileSync(resolve(root, "scripts/oracle/inputs/ten-object-parity.json"), "utf8"));
 const mixedCorpusRound2 = JSON.parse(readFileSync(resolve(root, "scripts/oracle/inputs/ten-object-parity-round2.json"), "utf8"));
@@ -126,4 +126,4 @@ if (errors.length) {
   errors.forEach((error) => console.error(`  ${error}`));
   process.exit(1);
 }
-console.log(`Wall-envelope scenarios valid: 1 provisional scenario, ${corpus.candidates.length} calculator candidates, ${profnastil.cases.length} profnastil objects, ${mixedCorpus.cases.length} first-round objects, ${mixedCorpusRound2.cases.length} second-round objects, ${independent.length} independent calculator workbooks.`);
+console.log(`Wall-purlin scenarios valid: 1 provisional scenario, ${corpus.candidates.length} calculator candidates, ${profnastil.cases.length} profnastil objects, ${mixedCorpus.cases.length} first-round objects, ${mixedCorpusRound2.cases.length} second-round objects, ${independent.length} independent calculator workbooks.`);

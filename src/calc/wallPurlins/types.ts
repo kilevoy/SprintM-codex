@@ -1,4 +1,4 @@
-export interface WallEnvelopeProfile {
+export interface WallPurlinProfile {
   /** Имя строки из таблицы «Расчёт Угловая» (включая обозначение схемы). */
   profile: string;
   family: string;
@@ -18,7 +18,7 @@ export interface WallEnvelopeProfile {
   jointMass_kg: number;
 }
 
-export interface WallEnvelopeZoneInput {
+export interface WallPurlinZoneInput {
   /** Расчётная длина стены/зоны вдоль фасада, м. */
   length_m: number;
   /** Высота стены в данной зоне, м. Для торца — высота по коньку. */
@@ -35,7 +35,7 @@ export interface WallEnvelopeZoneInput {
   bracketSpacing_m?: number;
 }
 
-export interface WallEnvelopeZoneTakeoff {
+export interface WallPurlinZoneTakeoff {
   rows: number;
   profileLength_m: number;
   bracketCount: number;
