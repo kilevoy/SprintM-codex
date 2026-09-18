@@ -71,6 +71,7 @@ import {
   computeWallPurlinsAuto,
   wallPurlinBuildingTakeoff,
 } from "../wallPurlins/autoWallPurlins";
+import { wallPurlinHeights } from "../wallPurlins/wallHeights";
 
 const roofingTypes = roofingTypesRaw as { type: string; selfWeight_kg_m2: number }[];
 
@@ -245,6 +246,13 @@ export interface ProjectInputs {
      * взял другой шаг, так что вход остаётся переопределяемым.
      */
     gablePostSpacing_m?: number;
+    /**
+     * Добавка к высоте карниза, м. По рабочей тетради расчётчика — 0,5;
+     * рядом в скобках у него стоит вариант +1,3, но когда он применяется,
+     * пока не выяснено. Та же добавка стоит в формуле площади обшивки
+     * в ведомости: `(C10 + 0,5)`.
+     */
+    heightAllowance_m?: number;
   };
   /** Толщина профлиста кровли, мм — 0,5 или 0,7. Без разницы, если кровля не профлист. */
   roofProfnastilThickness_mm?: number;
@@ -720,14 +728,23 @@ export function computeProject(inputs: ProjectInputs) {
       return null;
     }
 
-    const ridgeHeight_m =
-      height_m + Math.tan((geometry.roofSlopeDeg * Math.PI) / 180) * (span / 2);
+    // Высоты обеих стен — по правилу из рабочей тетради расчётчика, а не
+    // через тангенс уклона: он пользуется округлёнными 0,25 и 0,1, и на
+    // 21604 разница даёт 9,75 против 9,91 м. См. wallHeights.ts.
+    const heights = wallPurlinHeights({
+      span_m: span,
+      eaveHeight_m: height_m,
+      roofSlopeDeg: geometry.roofSlopeDeg,
+      allowance_m: wallPurlinsAutoInput.heightAllowance_m,
+    });
     const pin = wallPurlinsAutoInput.profileHeight_mm;
     const gablePostSpacing_m =
       wallPurlinsAutoInput.gablePostSpacing_m ?? span / (facadePostCount(span) / 2 + 1);
     const shared = {
       crosswindWidth_m: length_m,
-      ridgeHeight_m,
+      // «Высота здания» Лист1!B8 подборщика — это высота торцевой стены:
+      // на всех трёх объектах расчётчика они совпадают в ноль.
+      ridgeHeight_m: heights.gable_m,
       terrain: terrainType,
       w0_kPa: w0Kpa,
       gammaN,
@@ -740,13 +757,13 @@ export function computeProject(inputs: ProjectInputs) {
     const longWalls = computeWallPurlinsAuto({
       ...shared,
       wallLength_m: length_m,
-      wallHeight_m: height_m,
+      wallHeight_m: heights.longitudinal_m,
       framePitch_m: geometry.framePitch_m,
     });
     const endWalls = computeWallPurlinsAuto({
       ...shared,
       wallLength_m: span,
-      wallHeight_m: ridgeHeight_m,
+      wallHeight_m: heights.gable_m,
       framePitch_m: gablePostSpacing_m,
     });
     if (!longWalls.ok || !endWalls.ok) {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeProject, type ProjectInputs } from "./computeProject";
+import { profilesPerLine } from "../wallPurlins/autoWallPurlins";
 
 /**
  * Подключение автоподбора стеновых прогонов к расчёту объекта.
@@ -24,7 +25,10 @@ const coldProfnastilHangar: ProjectInputs = {
   manualClimate: { snowLoad_kPa: 1.5, windDistrict: "II", label: "Каргалейка" },
   span: 12,
   length_m: 30,
-  height_m: 4.8,
+  // Высота до карниза из шапки ведомости 21876. Добавку +0,5 правило
+  // высот добавляет само: вдоль 5,0, торец 6×0,25 + 5,0 = 6,5 — ровно
+  // то, что стоит в копиях калькулятора расчётчика.
+  height_m: 4.5,
   gammaN: 0.8,
   bankK: 0.8,
   roofingType: "профлист",
@@ -67,8 +71,9 @@ describe("автоподбор стеновых прогонов в расчёт
   });
 
   it("торец считается по коньку и пролёту, продольная — по карнизу и длине", () => {
-    // Здание, где все четыре величины различаются, — подмена любой из них
-    // сразу видна: пролёт 18, длина 48, карниз 7, конёк 7 + 9·tg(15°).
+    // Геометрия 21604: пролёт 18, длина 48, карниз 7, уклон 15°.
+    // По тетради расчётчика вдоль = 7 + 0,5 = 7,5, торец = 9×0,25 + 7,5 =
+    // 9,75 — ровно те высоты, что стоят в его копиях калькулятора.
     const result = computeProject({
       ...coldProfnastilHangar,
       span: 18,
@@ -80,11 +85,9 @@ describe("автоподбор стеновых прогонов в расчёт
     expect(auto).not.toBeNull();
     if (!auto || !auto.longWalls.ok || !auto.endWalls.ok) throw new Error("подбор не дал решения");
 
-    const ridge_m = 7 + Math.tan((15 * Math.PI) / 180) * 9;
-
-    expect(auto.longWalls.wallHeight_m).toBe(7);
+    expect(auto.longWalls.wallHeight_m).toBeCloseTo(7.5, 9);
     expect(auto.longWalls.wallLength_m).toBe(48);
-    expect(auto.endWalls.wallHeight_m).toBeCloseTo(ridge_m, 9);
+    expect(auto.endWalls.wallHeight_m).toBeCloseTo(9.75, 9);
     expect(auto.endWalls.wallLength_m).toBe(18);
 
     // Ровно то, что важно не перепутать: торец выше продольной стены.
@@ -144,10 +147,9 @@ describe("автоподбор стеновых прогонов в расчёт
     expect(takeoff).toBeDefined();
     if (!takeoff) return;
     expect(takeoff.lines.length).toBeGreaterThan(0);
-    // Парное сечение «[]» идёт в ведомость удвоенной длиной.
+    // Парное сечение идёт в ведомость удвоенной длиной.
     for (const line of takeoff.lines) {
-      const perLine = Math.round(line.profile.massSection_kg_m / line.profile.massProfile_kg_m);
-      expect(line.profileLength_m).toBeCloseTo(line.lineLength_m * perLine, 9);
+      expect(line.profileLength_m).toBeCloseTo(line.lineLength_m * profilesPerLine(line.profile), 9);
     }
     expect(takeoff.brackets.count).toBeGreaterThan(0);
     expect(takeoff.profileMass_kg).toBeGreaterThan(0);
@@ -170,6 +172,9 @@ describe("автоподбор стеновых прогонов в расчёт
     const takeoff = result.wallPurlinsAuto?.takeoff;
     expect(takeoff).toBeDefined();
     if (!takeoff) return;
+
+    // Заодно площадь обшивки: формула ведомости (C10+0,5) даёт те же 488,4 м².
+    expect(result.envelope.wallArea).toBeCloseTo(488.4, 1);
 
     expect(takeoff.lines).toHaveLength(1);
     expect(takeoff.lines[0].profile.profile).toBe("[]ПП 145x45x1,2");

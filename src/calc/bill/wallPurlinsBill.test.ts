@@ -14,7 +14,9 @@ const hangar: ProjectInputs = {
   manualClimate: { snowLoad_kPa: 1.5, windDistrict: "II", label: "Каргалейка" },
   span: 12,
   length_m: 30,
-  height_m: 4.8,
+  // Высота до карниза из шапки ведомости; добавку +0,5 правило высот
+  // добавляет само (вдоль 5,0, торец 6,5).
+  height_m: 4.5,
   gammaN: 0.8,
   bankK: 0.8,
   roofingType: "профлист",
