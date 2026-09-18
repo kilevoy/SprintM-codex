@@ -519,7 +519,9 @@ export function computeProject(inputs: ProjectInputs) {
       ? computeFrameFasteners(geometry, frameTakeoff.frameCount, selection.bolts.totalInFrame)
       : null;
 
-  const frameExtras = frameTakeoff ? computeFrameExtras(geometry, frameTakeoff.frameCount) : null;
+  const frameExtras = frameTakeoff
+    ? computeFrameExtras(geometry, frameTakeoff.frameCount, { wallIsProfnastil })
+    : null;
 
   // Второстепенные сечения — затяжки, распорки, связи, стойки фахверка:
   // подборщик выводит их формулами (вывод!D36:D41), см. secondaryMembers.
@@ -693,7 +695,7 @@ export function computeProject(inputs: ProjectInputs) {
     });
   }
 
-  const wallTrim = computeWallTrim(geometry);
+  const wallTrim = computeWallTrim(geometry, { wallIsProfnastil });
   const roofTrim = computeRoofTrim(geometry, { snowGuards });
   // ТЗ, п.14 — водосток бывает не заказан вовсе («21923»: F70 = 0 в обоих
   // вариантах), а не просто с другими размерами; тогда раздела нет совсем.

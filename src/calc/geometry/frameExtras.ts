@@ -46,17 +46,30 @@ const EXTRA_UNITS = {
  *
  * Позиции ПГС 145х70х2 и ПП150х1,5 того же раздела в обоих проектах
  * умножены на 0, поэтому сюда не входят.
+ *
+ * ПОД ПРОФЛИСТОМ «ПС 145х1,5» и «ПШ 61х1» НЕ СЧИТАЮТСЯ. Обе формулы в
+ * профлистовых ведомостях дописаны множителем 0:
+ *
+ *   21876: ПС 145х1,5 = 4*C9*0        ПШ 61х1 = 2*(C8+2*C9)*1.1*0
+ *   21604: то же самое
+ *
+ * И это не прихоть: «ПС 145х1,5 = 4 × длина» — стеновой прогон
+ * сэндвич-варианта, те же четыре ряда, что под профлистом считает
+ * подбор стеновых прогонов (src/calc/wallPurlins). Оставлять обе
+ * строки значило бы посчитать стеновые прогоны дважды.
  */
 export function computeFrameExtras(
   geometry: Pick<BuildingGeometry, "span_m" | "length_m" | "height_m">,
   frameCount: number,
+  options: { wallIsProfnastil?: boolean } = {},
 ): FrameExtrasTakeoff {
   const { span_m, length_m, height_m } = geometry;
+  const wallIsProfnastil = options.wallIsProfnastil === true;
 
   const counts: [keyof typeof EXTRA_UNITS, number][] = [
-    ["ps145", 4 * length_m],
+    ["ps145", wallIsProfnastil ? 0 : 4 * length_m],
     ["flatSheet", frameCount * 2 * span_m * 0.05 * 1.1 * 2],
-    ["psh61", 2 * (span_m + 2 * height_m) * 1.1],
+    ["psh61", wallIsProfnastil ? 0 : 2 * (span_m + 2 * height_m) * 1.1],
   ];
 
   const items: FrameExtraItem[] = counts.map(([key, count]) => {

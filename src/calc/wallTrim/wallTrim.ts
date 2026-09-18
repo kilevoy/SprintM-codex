@@ -36,6 +36,22 @@ const TRIM_UNITS = {
 } as const;
 
 /**
+ * Под профлистом идут другие уголки — «Уголок 50х50», элемент
+ * ТРЁХметровый, поэтому делитель 2,9, а не 1,9 (те же 10 см на нахлёст).
+ *
+ * Цена наружного зависит от покрытия: 640 ₽ окрашенный (21876, 21604),
+ * 440 ₽ оцинкованный (22258). Входа «покрытие стен» в SprintM пока нет —
+ * обшивка везде считается окрашенной, поэтому здесь тоже 640.
+ */
+const PROFNASTIL_TRIM_UNITS = {
+  innerAngle: { name: "Уголок 50х50 вн", unit: "шт", unitMass_kg: 0.9, unitPrice: 640 },
+  outerAngle: { name: "Уголок 50х50 нар", unit: "шт", unitMass_kg: 2.3, unitPrice: 640 },
+} as const;
+
+/** Рабочая длина элемента, м: 2 м у У.115 и 3 м у уголка 50х50, минус нахлёст. */
+const USABLE_LENGTH_m = { sandwich: 1.9, profnastil: 2.9 } as const;
+
+/**
  * Ведомость раздела "Стены" — угловые доборные элементы.
  *
  * Формулы подтверждены дословным совпадением в обеих реальных
@@ -54,16 +70,25 @@ const TRIM_UNITS = {
  */
 export function computeWallTrim(
   geometry: Pick<BuildingGeometry, "span_m" | "length_m" | "height_m">,
+  options: { wallIsProfnastil?: boolean } = {},
 ): WallTrimTakeoff {
   const { span_m, length_m, height_m } = geometry;
+  const wallIsProfnastil = options.wallIsProfnastil === true;
+  const units = wallIsProfnastil ? PROFNASTIL_TRIM_UNITS : TRIM_UNITS;
+  const usable = wallIsProfnastil ? USABLE_LENGTH_m.profnastil : USABLE_LENGTH_m.sandwich;
 
+  // Внутренний уголок под профлистом не считается: во всех трёх
+  // профлистовых ведомостях внутренней обшивки нет, и формула дописана
+  // множителем 0 на 21876 и 22258. На 21604 множитель не дописан и
+  // уголок посчитан (62 шт) — формула там та же самая, так что это
+  // похоже на недосмотр, а не на другое правило. Вопрос расчётчику.
   const counts: [keyof typeof TRIM_UNITS, number][] = [
-    ["innerAngle", (3 * length_m + 2 * span_m) / 1.9],
-    ["outerAngle", (4 * height_m) / 1.9],
+    ["innerAngle", wallIsProfnastil ? 0 : (3 * length_m + 2 * span_m) / usable],
+    ["outerAngle", (4 * height_m) / usable],
   ];
 
   const items: WallTrimItem[] = counts.map(([key, count]) => {
-    const { name, unit, unitMass_kg, unitPrice } = TRIM_UNITS[key];
+    const { name, unit, unitMass_kg, unitPrice } = units[key];
     return {
       name,
       count,
