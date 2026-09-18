@@ -39,26 +39,57 @@ const kargaleyka: ProjectInputs = {
   wallProfnastilThickness_mm: 0.5,
   roofProfnastilThickness_mm: 0.7,
   wallPurlinsAuto: { profileHeight_mm: 145, gablePostSpacing_m: 6 },
+  // На 21876 весь раздел «Водосток» занулён (строки 61-69 домножены на 0),
+  // и вместе с ним занулена строка «ПС 145х1,5 водосток» (C26 = 4*C9*0).
+  hasDrainage: false,
 };
 
 const row = (bill: ReturnType<typeof buildBill>, section: string, name: string) =>
   bill.materials.find((s) => s.title === section)?.rows.find((r) => r.name === name);
 
 describe("разделы ведомости под профнастилом", () => {
-  it("ПС 145х1,5 и ПШ 61х1 не считаются: под профлистом они обнулены", () => {
-    // 21876 и 21604 дописывают к обеим формулам множитель 0:
-    //   ПС 145х1,5 = 4*C9*0        ПШ 61х1 = 2*(C8+2*C9)*1.1*0
-    // «ПС 145х1,5 = 4 × длина» — это стеновой прогон сэндвич-варианта,
-    // те же 4 ряда, что под профлистом даёт подбор стеновых прогонов.
+  it("ПШ 61х1 не считается: под профлистом он обнулён на всех трёх объектах", () => {
+    // 21876, 22258 и 22304 дописывают множитель 0: 2*(C8+2*C9)*1.1*0.
+    // Под сэндвичем считается по другой формуле — 2*(C8+2*C10)*1.1.
     const bill = buildBill(computeProject(kargaleyka));
-    expect(row(bill, "Каркас", "ПС 145х1,5")?.count).toBe(0);
-    expect(row(bill, "Каркас", "ПС 145х1,5")?.cost).toBe(0);
     expect(row(bill, "Каркас", "ПШ 61х1")?.count).toBe(0);
+  });
+
+  it("«ПС 145х1,5 водосток» следует за водостоком, а не за обшивкой", () => {
+    // Это профиль под жёлоб, а не стеновой прогон: 22318 называет позицию
+    // дословно «ПС 145х1,5 водосток». Зависимость строгая по семи книгам:
+    // где занулён раздел водостока, там занулена и эта строка.
+    const noGutter = buildBill(computeProject(kargaleyka));
+    expect(row(noGutter, "Каркас", "ПС 145х1,5")?.count).toBe(0);
+    expect(row(noGutter, "Каркас", "ПС 145х1,5")?.cost).toBe(0);
+
+    // 22304 — тоже профнастил, но с водостоком: 4 × 40 = 160 п.м.
+    // Раньше строка была привязана к обшивке и здесь терялось 72 072 ₽.
+    const withGutter = buildBill(
+      computeProject({ ...kargaleyka, length_m: 40, hasDrainage: true }),
+    );
+    expect(row(withGutter, "Каркас", "ПС 145х1,5")?.count).toBeCloseTo(160, 9);
+  });
+
+  it("лист 0,7 под профнастилом считается с коэффициентом 1,11", () => {
+    // 21876!C73 = C9*0,5*1,11 = 16,65 м² против 16,5 при 1,10.
+    // 21876, 22258 и 22304 дают 1,11; четыре сэндвич-книги — 1,10.
+    const bill = buildBill(computeProject(kargaleyka));
+    const sheet = row(bill, "Кровля", "Лист 0,7мм оц");
+    expect(sheet?.count).toBeCloseTo(16.65, 9);
+    expect(sheet?.cost).toBeCloseTo(10053.936, 3);
   });
 
   it("под сэндвич-панелью обе строки остаются на месте", () => {
     const bill = buildBill(
-      computeProject({ ...kargaleyka, wallCladdingMaterial: "СП", wallPanel_mm: 100, wallPurlinsAuto: undefined }),
+      computeProject({
+        ...kargaleyka,
+        wallCladdingMaterial: "СП",
+        wallPanel_mm: 100,
+        wallPurlinsAuto: undefined,
+        // Водосток есть на всех четырёх сэндвич-объектах.
+        hasDrainage: true,
+      }),
     );
     // 4 × длина = 120 п.м., 2 × (пролёт + 2 × высота) × 1,1 = 46,2 п.м.
     expect(row(bill, "Каркас", "ПС 145х1,5")?.count).toBeCloseTo(120, 6);

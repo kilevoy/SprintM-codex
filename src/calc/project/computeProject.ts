@@ -520,7 +520,7 @@ export function computeProject(inputs: ProjectInputs) {
       : null;
 
   const frameExtras = frameTakeoff
-    ? computeFrameExtras(geometry, frameTakeoff.frameCount, { wallIsProfnastil })
+    ? computeFrameExtras(geometry, frameTakeoff.frameCount, { wallIsProfnastil, hasDrainage })
     : null;
 
   // Второстепенные сечения — затяжки, распорки, связи, стойки фахверка:
@@ -696,7 +696,7 @@ export function computeProject(inputs: ProjectInputs) {
   }
 
   const wallTrim = computeWallTrim(geometry, { wallIsProfnastil });
-  const roofTrim = computeRoofTrim(geometry, { snowGuards });
+  const roofTrim = computeRoofTrim(geometry, { snowGuards, wallIsProfnastil });
   // ТЗ, п.14 — водосток бывает не заказан вовсе («21923»: F70 = 0 в обоих
   // вариантах), а не просто с другими размерами; тогда раздела нет совсем.
   const drainage = hasDrainage ? computeDrainage(geometry) : NO_DRAINAGE;
