@@ -13,10 +13,11 @@
     "check:wall-envelope-scenarios": "node scripts/oracle/validate_wall_envelope_scenarios.mjs",
     "update:references": "node scripts/check_reference_drift.mjs --update",
     "check:parity-baseline": "node scripts/oracle/check_baseline.mjs",
+    "check:wall-envelope-parity": "vite-node scripts/oracle/compare_wall_envelope_calculator.mjs -- scripts/oracle/expected/wall-envelope-calculator.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run lint && npm run check:references && npm run check:wall-envelope-scenarios && npm run typecheck && npm test && npm run build"
+    "verify": "npm run lint && npm run check:references && npm run check:wall-envelope-scenarios && npm run check:wall-envelope-parity && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "pdfjs-dist": "^6.3.289",

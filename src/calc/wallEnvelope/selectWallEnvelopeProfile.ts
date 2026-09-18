@@ -1,4 +1,5 @@
 import profilesRaw from "../../data/wallEnvelopeProfiles.generated.json";
+import { excelCeiling } from "./excelNumerics";
 import type { WallEnvelopeProfile } from "./types";
 
 interface WallEnvelopeProfileCatalog {
@@ -150,12 +151,19 @@ export interface WallEnvelopeSelectionInput {
   minThicknessClass: number;
   maxThicknessClass: number;
   /**
-   * Коэффициент ветровой нагрузки зоны (C3 = 'Ветер по СП'!F7 или G7 × γn).
-   * Отдельный для угловой (F7) и рядовой (G7) зоны — расчёт этого
-   * коэффициента (высотный k(ze), пульсация, корреляция) в SprintM ещё не
-   * перенесён; до этого его нужно передавать явно.
+   * Коэффициент ветровой нагрузки зоны (C3 = 'Ветер по СП'!F7 или G7 × γn),
+   * см. zoneWindPressure.ts.
    */
   windPressureFactor: number;
+  /**
+   * Лист1!B32 — принудительный коэффициент использования сечения;
+   * 0 (по умолчанию) означает «взять из столбца O каталога».
+   *
+   * Исходник: X = W * ЕСЛИ(B32=0; O; B32) * ЕСЛИ(класс толщины=1; P4; 1).
+   * В снимке каталога `capacity_X` уже посчитан при B32=0, поэтому для
+   * ненулевого B32 он пересчитывается через сохранённый `usageFactor` (=O).
+   */
+  momentFactorOverride?: number;
 }
 
 export interface WallEnvelopeSelectionResult {
@@ -187,6 +195,7 @@ export function selectWallEnvelopeProfile(
   const requiredInsulation_mm = requiredInsulationForCovering_mm(input.coveringType);
   const studFactor = studCountFactor(input.framePitch_m);
   const studBaseWeight = studFactor * input.zoneHeight_m;
+  const momentFactorOverride = input.momentFactorOverride ?? 0;
 
   let best: WallEnvelopeSelectionResult | null = null;
 
@@ -199,7 +208,7 @@ export function selectWallEnvelopeProfile(
     const windBendingMoment_kNm =
       windPressure_kPa * (step_mm / 1000) * input.framePitch_m ** 2 * 0.125;
 
-    const rowsInZone = Math.ceil(input.zoneHeight_m / (step_mm / 1000)) - 1;
+    const rowsInZone = excelCeiling(input.zoneHeight_m / (step_mm / 1000)) - 1;
     const rowLengthTerm = rowsInZone * input.framePitch_m;
 
     catalog.rows.forEach((profile, index) => {
@@ -217,7 +226,11 @@ export function selectWallEnvelopeProfile(
       if (profile.height_mm > input.maxHeight_mm) return;
       if (profile.insulation_mm !== requiredInsulation_mm) return;
 
-      const utilization = windBendingMoment_kNm / profile.capacity_X;
+      const capacity =
+        momentFactorOverride === 0
+          ? profile.capacity_X
+          : (profile.capacity_X / profile.usageFactor) * momentFactorOverride;
+      const utilization = windBendingMoment_kNm / capacity;
       if (utilization > 1) return;
 
       const studWeight_kg = profile.bracing === "да" ? studBaseWeight * studMassPerMeter_kg(profile.height_mm) : 0;
