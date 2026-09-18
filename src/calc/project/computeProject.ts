@@ -62,6 +62,11 @@ import {
 } from "../purlin/selectPurlin";
 import roofingTypesRaw from "../../data/roofingSelfWeight.json";
 import type { ResponsibilityLevel, Span } from "../../types/common";
+import {
+  computeWallEnvelopeZone,
+  findWallEnvelopeProfiles,
+  type WallEnvelopeProfileQuery,
+} from "../wallEnvelope/wallEnvelope";
 
 const roofingTypes = roofingTypesRaw as { type: string; selfWeight_kg_m2: number }[];
 
@@ -197,6 +202,17 @@ export interface ProjectInputs {
   wallCladdingMaterial?: "СП" | "профнастил";
   /** Толщина профлиста стен, мм — 0,5 или 0,7. Без разницы, если стены не профлист. */
   wallProfnastilThickness_mm?: number;
+  /**
+   * Явно подтверждённая строка подборщика стеновой обвязки. Пока подбор по
+   * нагрузке не перенесён полностью, отсутствие этого блока не меняет старый
+   * расчёт и оставляет результат стеновых прогонов пустым.
+   */
+  wallEnvelope?: {
+    profile: WallEnvelopeProfileQuery;
+    step_mm: number;
+    edgeRowCorrection?: number;
+    bracketSpacing_m?: number;
+  };
   /** Толщина профлиста кровли, мм — 0,5 или 0,7. Без разницы, если кровля не профлист. */
   roofProfnastilThickness_mm?: number;
 }
@@ -243,6 +259,7 @@ export function computeProject(inputs: ProjectInputs) {
     wallCladdingMaterial = "СП",
     wallProfnastilThickness_mm = 0.5,
     roofProfnastilThickness_mm = 0.7,
+    wallEnvelope: wallEnvelopeInput,
   } = inputs;
 
   const wallIsProfnastil = wallCladdingMaterial === "профнастил";
@@ -548,7 +565,57 @@ export function computeProject(inputs: ProjectInputs) {
 
   const wallCladding: CladdingSectionTakeoff = wallIsProfnastil
     ? computeProfnastilWallSection(envelope.wallArea, wallProfnastilThickness_mm)
-    : computeWallCladdingSection(geometry, envelope.wallArea, wallPanel_mm);
+      : computeWallCladdingSection(geometry, envelope.wallArea, wallPanel_mm);
+
+  const wallEnvelopeProfile =
+    wallIsProfnastil && wallEnvelopeInput
+      ? findWallEnvelopeProfiles(wallEnvelopeInput.profile)[0] ?? null
+      : null;
+  const wallEnvelope =
+    wallEnvelopeProfile && wallEnvelopeInput
+      ? {
+          status: "provisional" as const,
+          source: "Калькулятор ограждайки v1.5.xlsx / Расчет Угловая" as const,
+          profile: wallEnvelopeProfile,
+          longWalls: computeWallEnvelopeZone(
+            {
+              length_m,
+              height_m,
+              step_mm: wallEnvelopeInput.step_mm,
+              framePitch_m: geometry.framePitch_m,
+              wallCount: 2,
+              edgeRowCorrection: wallEnvelopeInput.edgeRowCorrection,
+              bracketSpacing_m: wallEnvelopeInput.bracketSpacing_m,
+            },
+            wallEnvelopeProfile,
+          ),
+          endWalls: computeWallEnvelopeZone(
+            {
+              length_m: span,
+              height_m: height_m + Math.tan((geometry.roofSlopeDeg * Math.PI) / 180) * (span / 2),
+              step_mm: wallEnvelopeInput.step_mm,
+              framePitch_m: geometry.framePitch_m,
+              wallCount: 2,
+              edgeRowCorrection: wallEnvelopeInput.edgeRowCorrection,
+              bracketSpacing_m: wallEnvelopeInput.bracketSpacing_m,
+            },
+            wallEnvelopeProfile,
+          ),
+        }
+      : null;
+  if (wallIsProfnastil && wallEnvelopeInput && !wallEnvelopeProfile) {
+    approximations.push({
+      kind: "ограждение",
+      message: "Строка стеновой обвязки не найдена в извлечённом каталоге Excel; прогон не включён.",
+    });
+  } else if (wallEnvelope) {
+    approximations.push({
+      kind: "ограждение",
+      message:
+        "Стеновая обвязка рассчитана по явно выбранной строке калькулятора ограждайки; " +
+        "автоматический подбор по ветровой таблице Excel ещё не подтверждён паритетом.",
+    });
+  }
   const roofCladding = !purlinLayout
     ? null
     : roofIsProfnastil
@@ -724,6 +791,7 @@ export function computeProject(inputs: ProjectInputs) {
     openingsCost,
     envelope,
     wallCladding,
+    wallEnvelope,
     roofCladding,
     wallTrim,
     roofTrim,
