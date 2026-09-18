@@ -137,6 +137,30 @@ describe("автоподбор стеновой обвязки в расчёте
     expect(takeoff.brackets.mass_kg).toBe(90);
   });
 
+  it("проёмы уменьшают площадь обшивки, но не трогают прогоны", () => {
+    // В «Калькуляторе ограждайки» полей проёмов нет вовсе, а в ведомости
+    // 21876 количество прогонов записано формулой по целым стенам
+    // (5*2*12*2 + 4*2*30*2). Прогоны идут поверх проёма, вырезается только
+    // лист обшивки — поэтому вычет площади есть, а вычета прогонов нет.
+    const blank = computeProject(coldProfnastilHangar);
+    const withOpenings = computeProject({
+      ...coldProfnastilHangar,
+      openings: {
+        gates: [{ count: 2, width_m: 4, height_m: 4.2 }],
+        doors: [{ count: 2, width_m: 1, height_m: 2.1 }],
+        windows: [{ count: 6, width_m: 3, height_m: 1.2 }],
+      },
+    });
+
+    expect(withOpenings.envelope.wallArea).toBeLessThan(blank.envelope.wallArea);
+    expect(withOpenings.wallEnvelopeAuto?.takeoff.profileLength_m).toBe(
+      blank.wallEnvelopeAuto?.takeoff.profileLength_m,
+    );
+    expect(withOpenings.wallEnvelopeAuto?.takeoff.brackets.count).toBe(
+      blank.wallEnvelopeAuto?.takeoff.brackets.count,
+    );
+  });
+
   it("без профнастила на стенах автоподбор не запускается", () => {
     const result = computeProject({
       ...coldProfnastilHangar,

@@ -127,3 +127,68 @@ export function windowRigelFactors(type: WindowRigelType): WindowRigelFactors {
 export function isWindowRigelType(value: number): value is WindowRigelType {
   return Number.isInteger(value) && value >= 1 && value <= 5;
 }
+
+export type WindowRigelByRule =
+  | { kind: "tube"; profile: WindowRigelProfile }
+  /** Окно выше трёх метров — витраж, его расчётчик считает отдельно. */
+  | { kind: "curtain-wall" };
+
+/**
+ * Практическое правило расчётчика: сечение оконного ригеля по высоте окна.
+ *
+ *   до 1,5 м       — труба 80×4
+ *   от 1,5 до 3 м  — труба 120×4
+ *   выше 3 м       — витраж, автоматически не считается
+ *
+ * Правило именно по ВЫСОТЕ: от неё зависит грузовая площадь ригеля
+ * (`O26` подборщика берёт высоту окна, а пролёт ригеля — это шаг рам), и
+ * «выше 3 м — витраж» осмысленно только для высоты: широкое окно — это
+ * ленточное остекление, у него в подборщике своя строка `O27`.
+ *
+ * Трубы — обычные чёрные, неоцинкованные (см.
+ * WINDOW_RIGEL_TUBE_PRICE_PER_TON).
+ */
+export function windowRigelByHeight(height_m: number): WindowRigelByRule {
+  if (height_m > 3) return { kind: "curtain-wall" };
+  const name = height_m <= 1.5 ? "кв.80х4" : "пр.120х80х4";
+  const profile = getWindowRigelProfiles().find((p) => p.name === name && p.steel === "С245");
+  if (!profile) throw new Error(`В каталоге нет трубы ${name}`);
+  return { kind: "tube", profile };
+}
+
+export interface WindowFramingInput {
+  height_m: number;
+  /** Пролёт ригеля — это шаг рам (Лист1!B7 подборщика). */
+  framePitch_m: number;
+  count: number;
+}
+
+/**
+ * Масса обрамления одной размерной группы окон, кг.
+ *
+ * Формула подборщика (Лист1!O26 книги «Таблица по подбору сечений …
+ * версия 1,5»):
+ *
+ *   O26 = (E24×B7 + E37×(2×B6 + B7)) × кол-во
+ *
+ * где `E24`/`E37` — погонные веса нижнего и верхнего ригелей, `B7` — шаг
+ * рам, `B6` — высота окна. То есть нижний ригель идёт на пролёт шага рам,
+ * а верхний — на две стойки по высоте окна плюс перемычку в шаг рам.
+ * По правилу выше оба сечения одинаковы.
+ *
+ * Надбавка 1,05 сюда НЕ входит: в `O26` её нет, в отличие от соседних
+ * строк по воротам и дверям.
+ */
+export function windowFramingMass_kg(input: WindowFramingInput): number | null {
+  const rigel = windowRigelByHeight(input.height_m);
+  if (rigel.kind === "curtain-wall") return null;
+  const perMeter = rigel.profile.massPerM_kg;
+  const lower = perMeter * input.framePitch_m;
+  const upper = perMeter * (2 * input.height_m + input.framePitch_m);
+  return (lower + upper) * input.count;
+}
+
+/** Стоимость обрамления окон по цене чёрной трубы, ₽. */
+export function windowFramingCost(mass_kg: number): number {
+  return (mass_kg / 1000) * WINDOW_RIGEL_TUBE_PRICE_PER_TON;
+}
