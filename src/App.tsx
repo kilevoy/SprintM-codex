@@ -232,6 +232,9 @@ export function App() {
   const [extraTubeMass_t, setExtraTubeMass] = useState(0);
   // Шаг рам вручную (вывод!D9): расчётчик задаёт его при некратной длине.
   const [framePitchOverride, setFramePitchOverride] = useState(0);
+  // 0 — по правилу подборщика (6° при пролёте свыше 21 м, иначе 15°).
+  // Уклон влияет и на высоту торцевой стены, см. wallHeights.ts.
+  const [roofSlopeOverride, setRoofSlopeOverride] = useState(0);
   // Прогон под ограждение (вывод!D27) и мин. шаг прогонов (вывод!D25).
   const [railingPurlin, setRailingPurlin] = useState(false);
   // ТЗ, п.14 — бывает заказан без организованного водостока вовсе.
@@ -286,6 +289,7 @@ export function App() {
         maxStepOverride_mm: maxStepOverrideMm,
         minStep_mm: minStepMm,
         framePitchOverride_m: framePitchOverride,
+        roofSlopeOverrideDeg: roofSlopeOverride > 0 ? roofSlopeOverride : undefined,
         wallPanel_mm: wallThickness,
         roofPanel_mm: roofThickness,
         openings,
@@ -330,6 +334,7 @@ export function App() {
       maxStepOverrideMm,
       minStepMm,
       framePitchOverride,
+      roofSlopeOverride,
       wallThickness,
       roofThickness,
       openings,
@@ -468,6 +473,7 @@ export function App() {
     setColumnOverride(next.columnOverride ?? "");
     setWallCladdingMaterial(next.wallCladdingMaterial ?? "СП");
     setWallProfnastilThickness(next.wallProfnastilThickness_mm ?? 0.5);
+    setRoofSlopeOverride(next.roofSlopeOverrideDeg ?? 0);
     setRoofProfnastilThickness(next.roofProfnastilThickness_mm ?? 0.7);
     setWallPurlinProfileHeight(next.wallPurlinsAuto?.profileHeight_mm ?? 145);
     setGablePostSpacing(
@@ -1111,6 +1117,24 @@ export function App() {
             />
             <span className="field-hint">
               0 — из банка сечений{framePitchOverride === 0 ? ` (${geometry.framePitch_m} м)` : ""}
+            </span>
+          </label>
+
+          <label>
+            Уклон кровли, град.
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={roofSlopeOverride}
+              onChange={(e) => setRoofSlopeOverride(Number(e.target.value))}
+            />
+            <span className="field-hint">
+              {roofSlopeOverride > 0
+                ? `Задан вручную: ${geometry.roofSlopeDeg}°.`
+                : `0 — по пролёту (${geometry.roofSlopeDeg}°).`}{" "}
+              Влияет и на высоту торцевой стены: подъём считается как половина
+              пролёта × 0,25 при 15° и × 0,1 при 6°.
             </span>
           </label>
 

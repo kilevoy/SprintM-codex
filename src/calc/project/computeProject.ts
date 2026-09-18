@@ -134,6 +134,15 @@ export interface ProjectInputs {
   minStep_mm: number;
   /** Шаг рам вручную (вывод!D9); 0 — из банка сечений. */
   framePitchOverride_m: number;
+  /**
+   * Уклон кровли вручную, град.; пусто или 0 — по правилу подборщика
+   * (6° при пролёте свыше 21 м, иначе 15°).
+   *
+   * Нужен потому, что правило по пролёту описывает не все объекты: у
+   * 22317 при пролёте 12 м уклон 6°, и высота торцевой стены там
+   * считается с множителем 0,1, а не 0,25.
+   */
+  roofSlopeOverrideDeg?: number;
   wallPanel_mm: number;
   roofPanel_mm: number;
   openings: OpeningsInput;
@@ -284,6 +293,7 @@ export function computeProject(inputs: ProjectInputs) {
     maxStepOverride_mm,
     minStep_mm,
     framePitchOverride_m,
+    roofSlopeOverrideDeg,
     wallPanel_mm,
     roofPanel_mm,
     openings,
@@ -473,7 +483,14 @@ export function computeProject(inputs: ProjectInputs) {
   const sgKpa =
     snowLoadOverride_kPa != null && snowLoadOverride_kPa > 0 ? snowLoadOverride_kPa : sgFromBase;
   const snowOverridden = sgKpa !== null && sgKpa !== sgFromBase;
-  const roofSlopeDeg = defaultRoofSlopeDeg(span);
+  // Уклон кровли: по умолчанию правило подборщика (6° при пролёте свыше
+  // 21 м, иначе 15°), но объекты из него выпадают — у 22317 при пролёте
+  // 12 м уклон 6°. От уклона зависит не только площадь и нагрузка, но и
+  // высота торцевой стены (wallHeights.ts), поэтому его можно задать.
+  const roofSlopeDeg =
+    roofSlopeOverrideDeg !== undefined && roofSlopeOverrideDeg > 0
+      ? roofSlopeOverrideDeg
+      : defaultRoofSlopeDeg(span);
 
   const roofLoad =
     sgKpa === null

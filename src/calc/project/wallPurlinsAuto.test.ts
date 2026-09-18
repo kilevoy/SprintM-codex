@@ -110,6 +110,34 @@ describe("автоподбор стеновых прогонов в расчёт
     expect(auto.endWalls.wallLength_m).toBe(coldProfnastilHangar.span);
   });
 
+  it("заданный уклон меняет высоту торца: 22317 с уклоном 6°", () => {
+    // 22317: пролёт 12, карниз 6,3, уклон 6°. По правилу подборщика при
+    // пролёте 12 вышло бы 15° и подъём 12/2×0,25 = 1,5 м, то есть торец
+    // 6,8 + 1,5 = 8,3 м. С настоящим уклоном 6° подъём 12/2×0,1 = 0,6 м и
+    // торец 7,4 м — ровно то, что стоит в копии калькулятора расчётчика.
+    const byRule = computeProject({
+      ...coldProfnastilHangar,
+      span: 12,
+      length_m: 45,
+      height_m: 6.3,
+    });
+    const withSlope = computeProject({
+      ...coldProfnastilHangar,
+      span: 12,
+      length_m: 45,
+      height_m: 6.3,
+      roofSlopeOverrideDeg: 6,
+    });
+    if (!byRule.wallPurlinsAuto?.endWalls.ok || !withSlope.wallPurlinsAuto?.endWalls.ok) {
+      throw new Error("подбор не дал решения");
+    }
+    expect(byRule.wallPurlinsAuto.endWalls.wallHeight_m).toBeCloseTo(8.3, 9);
+    expect(withSlope.wallPurlinsAuto.endWalls.wallHeight_m).toBeCloseTo(7.4, 9);
+    // Продольная стена от уклона не зависит вовсе.
+    expect(withSlope.wallPurlinsAuto.longWalls.wallHeight_m).toBeCloseTo(6.8, 9);
+    expect(byRule.wallPurlinsAuto.longWalls.wallHeight_m).toBeCloseTo(6.8, 9);
+  });
+
   it("шаг стоек торца выводится из числа стоек фахверка", () => {
     const result = computeProject(coldProfnastilHangar);
     // Пролёт 12 м, 4 стойки на здание -> 2 на торец -> 3 пролёта по 4 м.
