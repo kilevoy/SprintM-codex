@@ -4,7 +4,10 @@ import {
   cornerZoneLength_m,
   deckingDesignLoad_kPa,
   maxDeckingSpan_mm,
+  profilesPerLine,
+  wallPurlinBuildingTakeoff,
 } from "./autoWallPurlins";
+import { findWallPurlinProfiles } from "./wallPurlins";
 
 /**
  * Эталон — «Калькулятор ограждайки v1.5.xlsx», пересчитанный Excel COM на
@@ -122,6 +125,67 @@ describe("автоподбор стеновых прогонов", () => {
     // Высота по коньку 4,5 м ниже пяти: угловой зоны не возникает вовсе.
     expect(result.corner.zoneLength_m).toBe(0);
     expect(result.regular.zoneLength_m).toBe(30);
+  });
+
+  it("сдвоенное сечение идёт в ведомость удвоенным метражом: 21604", () => {
+    // Ведомость 21604 (Кропоткин 18×48), где выбраны сечения «[-]»:
+    //   ПС 145х45х1,5 = 8*2*12*2                                  = 384
+    //   ПС 145х45х1,2 = 7*2*6*2 + 7*2*10,7*2 + 5*2*37,3*2         = 1213,6
+    // Множитель ровно 2, хотя масса сечения к массе профиля тут
+    // относится как 2,48 и 2,60 — разница уходит в полосу, которая
+    // сидит в массе, но в метраж не попадает.
+    const shared = {
+      crosswindWidth_m: 48,
+      ridgeHeight_m: 9.75,
+      terrain: "B" as const,
+      w0_kPa: 0.48,
+      gammaN: 1,
+      coveringType: "профлист",
+      deckingMark: "С18-1150-0,5",
+      minProfileHeight_mm: 145,
+      maxProfileHeight_mm: 145,
+    };
+    const endWalls = computeWallPurlinsAuto({
+      ...shared,
+      wallLength_m: 18,
+      wallHeight_m: 9.75,
+      framePitch_m: 6,
+    });
+    const longWalls = computeWallPurlinsAuto({
+      ...shared,
+      wallLength_m: 48,
+      wallHeight_m: 7.5,
+      framePitch_m: 5.35,
+    });
+    expect(endWalls.ok).toBe(true);
+    expect(longWalls.ok).toBe(true);
+    if (!endWalls.ok || !longWalls.ok) return;
+
+    const takeoff = wallPurlinBuildingTakeoff([
+      { wallCount: 2, corner: endWalls.corner, regular: endWalls.regular },
+      { wallCount: 2, corner: longWalls.corner, regular: longWalls.regular },
+    ]);
+
+    const thick = takeoff.lines.find((line) => line.profile.profile === "[-]ПС145х45х1,5");
+    const thin = takeoff.lines.find((line) => line.profile.profile === "[-]ПС145х45х1,2");
+    expect(thick?.profileLength_m).toBeCloseTo(384, 6);
+    expect(thin?.profileLength_m).toBeCloseTo(1213.6, 6);
+    // Масса считается по массе СЕЧЕНИЯ, то есть полоса в неё входит:
+    // 1213,6/2 × 6,1823 = 3751 кг, в ведомости округлено до 3 750.
+    expect(thin?.mass_kg).toBeCloseTo(3751.4, 0);
+  });
+
+  it("у одиночного сечения множителя нет, у сдвоенных он ровно два", () => {
+    const single = findWallPurlinProfiles({ height_mm: 110, thickness_mm: 1, insulation_mm: 0 }).find(
+      (row) => row.sectionType === "]",
+    );
+    expect(single && profilesPerLine(single)).toBe(1);
+    for (const sectionType of ["[]", "][", "[-]"]) {
+      const row = findWallPurlinProfiles({ height_mm: 145, thickness_mm: 1.2, insulation_mm: 0 }).find(
+        (candidate) => candidate.sectionType === sectionType,
+      );
+      expect(row && profilesPerLine(row)).toBe(2);
+    }
   });
 
   it("утеплённое покрытие честно отклоняется, а не считается молча", () => {
