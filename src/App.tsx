@@ -93,6 +93,19 @@ const MIN_HEIGHT_M = 3;
 const fmt = (v: number) => String(v).replace(".", ",");
 
 /**
+ * Числовые поля остаются контролируемыми числами, но нормализуются при вводе.
+ * Иначе очистка поля даёт Number("") === 0, и следующий символ превращается
+ * в значение вроде «05». Нули внутри дробной части не трогаем.
+ */
+function numberFromInput(raw: string): number {
+  const value = raw.trim();
+  if (value === "") return 0;
+  const normalized = value.replace(/^0+(?=\d)/, "");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/**
  * Один тип проёма (ворота/двери/окна) — список размеров вместо одного
  * поля. Расчётчик подтвердила (вопрос 02): «когда размеров больше, чем
  * слотов, я вручную добавляю слот» — здесь то же самое, кнопкой.
@@ -132,7 +145,7 @@ function OpeningGroupsEditor({
             min="0"
             aria-label="количество"
             value={g.count}
-            onChange={(e) => update(i, { count: Number(e.target.value) })}
+            onChange={(e) => update(i, { count: numberFromInput(e.target.value) })}
           />
           <input
             type="number"
@@ -140,7 +153,7 @@ function OpeningGroupsEditor({
             step="0.1"
             aria-label="ширина, м"
             value={g.width_m}
-            onChange={(e) => update(i, { width_m: Number(e.target.value) })}
+            onChange={(e) => update(i, { width_m: numberFromInput(e.target.value) })}
           />
           <input
             type="number"
@@ -148,7 +161,7 @@ function OpeningGroupsEditor({
             step="0.1"
             aria-label="высота, м"
             value={g.height_m}
-            onChange={(e) => update(i, { height_m: Number(e.target.value) })}
+            onChange={(e) => update(i, { height_m: numberFromInput(e.target.value) })}
           />
           {showWallSide && (
             <select
@@ -762,7 +775,7 @@ export function App() {
                   min="0.1"
                   step="0.05"
                   value={manualSnow}
-                  onChange={(e) => setManualSnow(Number(e.target.value))}
+                  onChange={(e) => setManualSnow(numberFromInput(e.target.value))}
                 />
                 <span className="field-hint">
                   Снеговой район не спрашиваем: его выводит лестница нагрузок ИНСИ.
@@ -821,7 +834,7 @@ export function App() {
               min="6"
               step="1"
               value={length}
-              onChange={(e) => setLength(Number(e.target.value))}
+              onChange={(e) => setLength(numberFromInput(e.target.value))}
             />
           </label>
 
@@ -833,7 +846,7 @@ export function App() {
               step="0.1"
               value={height}
               aria-invalid={heightTooHigh || undefined}
-              onChange={(e) => setHeight(Number(e.target.value))}
+              onChange={(e) => setHeight(numberFromInput(e.target.value))}
             />
             <span className={`field-hint${heightTooHigh ? " invalid" : ""}`}>
               {heightTooHigh
@@ -955,7 +968,7 @@ export function App() {
                   min={0}
                   step={5}
                   value={wallPurlinProfileHeight}
-                  onChange={(e) => setWallPurlinProfileHeight(Number(e.target.value))}
+              onChange={(e) => setWallPurlinProfileHeight(numberFromInput(e.target.value))}
                 />
                 <span className="field-hint">
                   Все прогоны стены одной высоты, иначе обшивка не ляжет в плоскость.
@@ -1113,7 +1126,7 @@ export function App() {
               min="0"
               step="0.5"
               value={framePitchOverride}
-              onChange={(e) => setFramePitchOverride(Number(e.target.value))}
+            onChange={(e) => setFramePitchOverride(numberFromInput(e.target.value))}
             />
             <span className="field-hint">
               0 — из банка сечений{framePitchOverride === 0 ? ` (${geometry.framePitch_m} м)` : ""}
@@ -1127,7 +1140,7 @@ export function App() {
               min="0"
               step="1"
               value={roofSlopeOverride}
-              onChange={(e) => setRoofSlopeOverride(Number(e.target.value))}
+              onChange={(e) => setRoofSlopeOverride(numberFromInput(e.target.value))}
             />
             <span className="field-hint">
               {roofSlopeOverride > 0
@@ -1145,7 +1158,7 @@ export function App() {
               step="50"
               min="0"
               value={maxStepOverrideMm}
-              onChange={(e) => setMaxStepOverrideMm(Number(e.target.value))}
+            onChange={(e) => setMaxStepOverrideMm(numberFromInput(e.target.value))}
             />
             <span className="field-hint">0 — по несущей способности настила</span>
           </label>
@@ -1157,7 +1170,7 @@ export function App() {
               min="0"
               step="50"
               value={minStepMm}
-              onChange={(e) => setMinStepMm(Number(e.target.value))}
+              onChange={(e) => setMinStepMm(numberFromInput(e.target.value))}
             />
             <span className="field-hint">0 — без ограничения снизу</span>
           </label>
@@ -1174,7 +1187,7 @@ export function App() {
                 type="number"
                 min="0"
                 value={tubeStrutCount}
-                onChange={(e) => setTubeStrutCount(Number(e.target.value))}
+                onChange={(e) => setTubeStrutCount(numberFromInput(e.target.value))}
               />
               <select
                 value={strutTube}
@@ -1199,7 +1212,7 @@ export function App() {
               min="0"
               step="0.001"
               value={extraTubeMass_t}
-              onChange={(e) => setExtraTubeMass(Number(e.target.value))}
+              onChange={(e) => setExtraTubeMass(numberFromInput(e.target.value))}
             />
             <span className={`field-hint${!openingsFraming.complete && extraTubeMass_t === 0 ? " invalid" : ""}`}>
               {extraTubeMass_t > 0
@@ -1217,7 +1230,7 @@ export function App() {
               min="0.5"
               step="0.1"
               value={postSpacing}
-              onChange={(e) => setPostSpacing(Number(e.target.value))}
+              onChange={(e) => setPostSpacing(numberFromInput(e.target.value))}
             />
             <span className="field-hint">Влияет только на подбор сечения стойки.</span>
           </label>
@@ -1287,7 +1300,7 @@ export function App() {
               min="0"
               step="0.1"
               value={snowOverrideKpa}
-              onChange={(e) => setSnowOverrideKpa(Number(e.target.value))}
+              onChange={(e) => setSnowOverrideKpa(numberFromInput(e.target.value))}
             />
             <span className="field-hint">0 — из нашей базы</span>
           </label>
