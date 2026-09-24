@@ -622,7 +622,7 @@ export function App() {
         </div>
       )}
 
-      <section className="dashboard-card" aria-label="Краткая сводка расчёта">
+      {calculationReady && <section className="dashboard-card" aria-label="Краткая сводка расчёта">
         <div className="dashboard-head">
           <div>
             <p className="eyebrow">ТЕКУЩИЙ СЦЕНАРИЙ</p>
@@ -651,7 +651,7 @@ export function App() {
         <p className="dashboard-note">
           Инженерные количества и стоимость показываются раздельно. Excel-паритет для текущего сценария не подтверждает автоматически итог — перед КП нужна проверка конструктора.
         </p>
-      </section>
+      </section>}
 
       <section className="card toolbar-card" id="calculation">
         <h2>Расчёт</h2>
