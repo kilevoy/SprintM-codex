@@ -527,7 +527,7 @@ export function App() {
     setCity("");
     setSupplyScope("full");
     setTerrainType("B");
-    setManualMode(true);
+    setManualMode(false);
     setManualSnow(1.5);
     setManualWind("II");
     setSpan(18);
