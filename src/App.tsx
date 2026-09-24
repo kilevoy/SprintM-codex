@@ -580,6 +580,7 @@ export function App() {
   const visibleCommercialLines = supplyScope === "frame-roof"
     ? commercial.lines.filter((line) => line.name === "Каркас")
     : commercial.lines.filter((line) => line.name !== "Окна, ворота, двери");
+  const calculationReady = city.trim().length > 0 && length > 0 && height > 0;
 
   return (
     <div
@@ -1208,6 +1209,8 @@ export function App() {
         </div>
       </section>
 
+      {calculationReady ? (
+        <>
       <section className="card metal-card" id="metal">
         <div className="section-title-row">
           <h2>Металлоёмкость</h2>
@@ -1958,6 +1961,14 @@ export function App() {
           оценка, не коммерческое предложение.
         </p>
       </section>
+
+        </>
+      ) : (
+        <section className="card empty-calculation" role="status">
+          <h2>Расчёт очищен</h2>
+          <p>Заполните город, длину и высоту здания — ведомость и итог появятся после ввода исходных данных.</p>
+        </section>
+      )}
 
       <footer>
         <p>

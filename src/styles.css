@@ -87,6 +87,15 @@ header {
   color: var(--destructive);
 }
 
+.empty-calculation {
+  border-style: dashed;
+  background: var(--muted-surface);
+}
+
+.empty-calculation h2 {
+  color: var(--secondary);
+}
+
 /* Верхняя панель даёт менеджеру быстрый ответ, не заставляя прокручивать
    всю ведомость. Подробные Excel-подобные карточки остаются ниже. */
 .dashboard-card {
