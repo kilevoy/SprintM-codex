@@ -520,6 +520,53 @@ export function App() {
     }
   }
 
+  function clearData() {
+    if (!window.confirm("Очистить введённые данные и вернуть форму к исходным значениям?")) return;
+    setCity("Челябинск");
+    setSupplyScope("full");
+    setTerrainType("B");
+    setManualMode(false);
+    setManualSnow(1.5);
+    setManualWind("II");
+    setSpan(18);
+    setLength(30);
+    setHeight(5);
+    setResponsibility(1.0);
+    setRoofingType(roofingTypes.find((r) => r.type === "С-П 150")!.type);
+    setDeckingMark(DEFAULT_DECKING_MARK);
+    setMaxStepOverrideMm(0);
+    setMinStepMm(0);
+    setFramePitchOverride(0);
+    setWallThickness(100);
+    setRoofThickness(150);
+    setWallCladdingMaterial("СП");
+    setWallProfnastilThickness(0.5);
+    setRoofProfnastilThickness(0.7);
+    setOpenings({
+      gates: DEFAULT_OPENINGS.gates.map((group) => ({ ...group })),
+      doors: DEFAULT_OPENINGS.doors.map((group) => ({ ...group })),
+      windows: DEFAULT_OPENINGS.windows.map((group) => ({ ...group })),
+    });
+    setPostSpacing(2);
+    setSnowGuards(true);
+    setRailingPurlin(false);
+    setHasDrainage(true);
+    setTubeStrutCount(3);
+    setStrutTube("");
+    setExtraTubeMass(0);
+    setSvOverride("");
+    setColumnOverride("");
+    setBankK("auto");
+    setSnowOverrideKpa(0);
+    setTrussedVariant(false);
+    setMezzanine(false);
+    setFireResistanceRating("");
+    setProjectTitle("");
+    setFileMessage(null);
+    setTzAdjustments([]);
+    setTzNotes([]);
+  }
+
   const supplyFrameLine = commercial.lines.find((line) => line.name === "Каркас");
   // ПС 145х1,5 — стеновой прогон в строках раздела «Каркас». Для режима
   // поставки только каркаса его стоимость исключаем вместе с 2% накладных.
@@ -550,8 +597,15 @@ export function App() {
       }}
     >
       <header>
-        <h1>СпринтМ</h1>
-        <p className="subtitle">Предварительный расчёт ангара ИНСИ — подбор сечений рамы</p>
+        <div className="header-row">
+          <div>
+            <h1>СпринтМ</h1>
+            <p className="subtitle">Предварительный расчёт ангара ИНСИ — подбор сечений рамы</p>
+          </div>
+          <button type="button" className="clear-data-button" onClick={clearData}>
+            Очистить данные
+          </button>
+        </div>
       </header>
 
       {requiresCheck && (

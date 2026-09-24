@@ -61,6 +61,32 @@ header {
   padding: 4px 4px 0;
 }
 
+.header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.clear-data-button {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  padding: 8px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.clear-data-button:hover {
+  border-color: var(--destructive);
+  background: oklch(0.97 0.03 25);
+  color: var(--destructive);
+}
+
 /* Верхняя панель даёт менеджеру быстрый ответ, не заставляя прокручивать
    всю ведомость. Подробные Excel-подобные карточки остаются ниже. */
 .dashboard-card {
@@ -307,6 +333,16 @@ header {
 
 /* На телефоне два столбца не помещаются. */
 @media (max-width: 560px) {
+  .header-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .clear-data-button {
+    align-self: flex-start;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }
