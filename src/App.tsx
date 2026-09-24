@@ -521,16 +521,18 @@ export function App() {
   }
 
   function clearData() {
-    if (!window.confirm("Очистить введённые данные и вернуть форму к исходным значениям?")) return;
-    setCity("Челябинск");
+    // Это именно очистка формы, а не восстановление демонстрационного
+    // сценария: оставляем только технические значения, необходимые React
+    // для стабильного отображения пустого расчёта.
+    setCity("");
     setSupplyScope("full");
     setTerrainType("B");
-    setManualMode(false);
+    setManualMode(true);
     setManualSnow(1.5);
     setManualWind("II");
     setSpan(18);
-    setLength(30);
-    setHeight(5);
+    setLength(0);
+    setHeight(0);
     setResponsibility(1.0);
     setRoofingType(roofingTypes.find((r) => r.type === "С-П 150")!.type);
     setDeckingMark(DEFAULT_DECKING_MARK);
@@ -542,11 +544,7 @@ export function App() {
     setWallCladdingMaterial("СП");
     setWallProfnastilThickness(0.5);
     setRoofProfnastilThickness(0.7);
-    setOpenings({
-      gates: DEFAULT_OPENINGS.gates.map((group) => ({ ...group })),
-      doors: DEFAULT_OPENINGS.doors.map((group) => ({ ...group })),
-      windows: DEFAULT_OPENINGS.windows.map((group) => ({ ...group })),
-    });
+    setOpenings({ gates: [], doors: [], windows: [] });
     setPostSpacing(2);
     setSnowGuards(true);
     setRailingPurlin(false);
@@ -562,7 +560,7 @@ export function App() {
     setMezzanine(false);
     setFireResistanceRating("");
     setProjectTitle("");
-    setFileMessage(null);
+    setFileMessage({ kind: "ok", text: "Данные очищены — можно заполнить новый расчёт." });
     setTzAdjustments([]);
     setTzNotes([]);
   }
