@@ -137,6 +137,19 @@ describe("buildBill — «22318»", () => {
   });
 });
 
+describe("buildBill — состав поставки навеса", () => {
+  it("оставляет каркас и кровельное ограждение без стен", () => {
+    const bill = buildBill(computeProject(project22318), "frame-roof-cladding");
+    const titles = [...bill.materials, ...bill.additional].map((section) => section.title);
+    expect(titles).toContain("Каркас");
+    expect(titles).toContain("Кровля");
+    expect(titles).not.toContain("Стены");
+    expect(titles).not.toContain("Стена");
+    expect(titles).not.toContain("Водосток");
+    expect(bill.totalWithPackaging).not.toBeNull();
+  });
+});
+
 /**
  * Третий реальный проект — «22285» (Коркино, 18 × 48, h6, шаг 4).
  *

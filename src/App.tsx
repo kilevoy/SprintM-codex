@@ -11,7 +11,7 @@ import { parseTz } from "./calc/tz/parseTz";
 import { tzToInputs } from "./calc/tz/tzToInputs";
 import { readPdfText } from "./calc/tz/readPdfText";
 import { DEFAULT_OPENINGS, type OpeningGroup, type OpeningsInput } from "./calc/geometry/openings";
-import { buildBill } from "./calc/bill/buildBill";
+import { buildBill, type SupplyScope } from "./calc/bill/buildBill";
 import { computeProject, type ProjectInputs } from "./calc/project/computeProject";
 import { DECKING_MARKS, DEFAULT_DECKING_MARK } from "./calc/purlin/deckingSpan";
 import roofingTypesRaw from "./data/roofingSelfWeight.json";
@@ -186,7 +186,7 @@ function OpeningGroupsEditor({
 
 export function App() {
   const [city, setCity] = useState("Челябинск");
-  const [supplyScope, setSupplyScope] = useState<"full" | "frame-roof">("full");
+  const [supplyScope, setSupplyScope] = useState<SupplyScope>("full");
   // Тип местности по СП — вход будущего подбора оконных ригелей.
   const [terrainType, setTerrainType] = useState<"A" | "B" | "C">("B");
   // Ручной ввод нагрузок — для площадок, которых нет в справочнике.
@@ -574,12 +574,24 @@ export function App() {
   const frameOnlyCost = supplyFrameLine?.cost === null || supplyFrameLine?.cost === undefined
     ? null
     : supplyFrameLine.cost - wallPurlinCost * 1.02;
+  const scopedSectionCost = (title: string) =>
+    [...bill.materials, ...bill.additional]
+      .filter((section) => section.title === title)
+      .reduce<number | null>((sum, section) =>
+        sum === null || section.totalCost === null ? null : sum + section.totalCost, 0);
   const supplyCost = supplyScope === "frame-roof"
     ? frameOnlyCost
-    : commercial.materialsWithPackaging;
+    : supplyScope === "frame-roof-cladding"
+      ? bill.totalWithPackaging
+      : commercial.materialsWithPackaging;
   const visibleCommercialLines = supplyScope === "frame-roof"
     ? commercial.lines.filter((line) => line.name === "Каркас")
-    : commercial.lines.filter((line) => line.name !== "Окна, ворота, двери");
+    : supplyScope === "frame-roof-cladding"
+      ? [
+          { name: "Каркас", cost: scopedSectionCost("Каркас"), missing: undefined },
+          { name: "Кровельное ограждение", cost: scopedSectionCost("Кровля"), missing: undefined },
+        ]
+      : commercial.lines.filter((line) => line.name !== "Окна, ворота, двери");
   const calculationReady = city.trim().length > 0 && length > 0 && height > 0;
 
   return (
@@ -755,12 +767,13 @@ export function App() {
 
           <label>
             Состав поставки
-            <select value={supplyScope} onChange={(e) => setSupplyScope(e.target.value as "full" | "frame-roof")}>
+            <select value={supplyScope} onChange={(e) => setSupplyScope(e.target.value as SupplyScope)}>
               <option value="full">полный комплект</option>
               <option value="frame-roof">только каркас + кровельные прогоны</option>
+              <option value="frame-roof-cladding">каркас + кровля из профнастила</option>
             </select>
             <span className="field-hint">
-              В режиме «только каркас» стены, панели, водосток и стеновая подсистема не входят в поставочный итог.
+              «Каркас + кровля» добавляет кровельный профнастил и доборные элементы, но исключает стены и стеновую подсистему.
             </span>
           </label>
 
@@ -1880,7 +1893,9 @@ export function App() {
         <p className="hint">
           {supplyScope === "frame-roof"
             ? "Состав поставки: только каркас и кровельные прогоны. Стеновая подсистема, ограждение и водосток исключены из поставочного итога."
-            : "Структура — как в коммерческой части исходной ведомости: три статьи материалов с упаковкой 2%, проёмы отдельной строкой сверх неё."}
+            : supplyScope === "frame-roof-cladding"
+              ? "Состав поставки: каркас, кровельные прогоны и кровельный профнастил. Стены, стеновые прогоны и водосток исключены."
+              : "Структура — как в коммерческой части исходной ведомости: три статьи материалов с упаковкой 2%, проёмы отдельной строкой сверх неё."}
         </p>
         <dl className="result-list">
           {visibleCommercialLines.map((line) => (
@@ -1896,7 +1911,11 @@ export function App() {
               </dd>
             </Fragment>
           ))}
-          <dt>{supplyScope === "frame-roof" ? "Итого поставка каркаса" : "Итого без окон, ворот и дверей"}</dt>
+          <dt>{supplyScope === "frame-roof"
+            ? "Итого поставка каркаса"
+            : supplyScope === "frame-roof-cladding"
+              ? "Итого поставка каркаса и кровли"
+              : "Итого без окон, ворот и дверей"}</dt>
           <dd className="summary-total">
             {supplyCost !== null
               ? Math.round(supplyCost).toLocaleString("ru-RU") + " ₽"

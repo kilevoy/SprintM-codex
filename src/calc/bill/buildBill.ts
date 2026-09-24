@@ -83,7 +83,9 @@ function sumOrNull(values: (number | null)[]): number | null {
  * Итоги разделов сверяются с ячейками исходника — F32, F44, F70, F81,
  * F100, F114, F147 — и это проверяется тестом на обоих реальных проектах.
  */
-export function buildBill(project: ProjectResult, supplyScope: "full" | "frame-roof" = "full"): Bill {
+export type SupplyScope = "full" | "frame-roof" | "frame-roof-cladding";
+
+export function buildBill(project: ProjectResult, supplyScope: SupplyScope = "full"): Bill {
   const {
     frameTakeoff,
     purlinLayout,
@@ -257,9 +259,9 @@ export function buildBill(project: ProjectResult, supplyScope: "full" | "frame-r
     buildingMass_kg: [...materials, ...additional].reduce((s, x) => s + x.totalMass_kg, 0),
   };
 
-  if (supplyScope !== "frame-roof") return fullBill;
+  if (supplyScope === "full") return fullBill;
 
-  // Режим поставки «только каркас»: оставляем рамы, кровельные прогоны,
+  // Режимы частичной поставки оставляют рамы, кровельные прогоны,
   // связи и крепёж каркаса. ПС 145х1,5 — стеновой прогон и исключается.
   const recalcSection = (source: BillSection, rows: BillRow[]): BillSection => {
     const subtotalCost = rows.some((row) => row.cost === null)
@@ -276,10 +278,10 @@ export function buildBill(project: ProjectResult, supplyScope: "full" | "frame-r
     };
   };
   const supplyMaterials = fullBill.materials
-    .filter((section) => section.title === "Каркас")
+    .filter((section) => section.title === "Каркас" || (supplyScope === "frame-roof-cladding" && section.title === "Кровля"))
     .map((section) => recalcSection(section, section.rows.filter((row) => !row.name.startsWith("ПС 145"))));
   const supplyAdditional = fullBill.additional
-    .filter((section) => section.title === "Каркас")
+    .filter((section) => section.title === "Каркас" || (supplyScope === "frame-roof-cladding" && section.title === "Кровля"))
     .map((section) => recalcSection(section, section.rows));
   const supplyMaterialsTotal = sumOrNull(supplyMaterials.map((section) => section.totalCost));
   const supplyAdditionalTotal = sumOrNull(supplyAdditional.map((section) => section.totalCost));
