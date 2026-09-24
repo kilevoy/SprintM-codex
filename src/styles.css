@@ -1,16 +1,34 @@
 :root {
   color-scheme: light;
-  --bg: #f5f6f8;
-  --card: #ffffff;
-  --border: #dde1e6;
-  --text: #1c2128;
-  --muted: #57606a;
-  --accent: #2f6f4f;
-  --error: #b3261e;
-  --warn-bg: #fff8e6;
-  --warn-border: #e0a800;
-  --warn-text: #7a5300;
-  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  /* AstroVista theme (tweakcn): сохраняем старые имена токенов,
+     чтобы расчётные компоненты не зависели от оформления. */
+  --background: oklch(0.9383 0.0042 236.4993);
+  --foreground: oklch(0.3211 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.3211 0 0);
+  --primary: oklch(0.642 0.1691 38.5815);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.4138 0.0846 259.8759);
+  --secondary-foreground: oklch(1 0 0);
+  --muted-surface: oklch(0.9846 0.0017 247.8389);
+  --muted-foreground: oklch(0.551 0.0234 264.3637);
+  --accent-surface: oklch(0.9119 0.0222 243.8174);
+  --accent-foreground: oklch(0.3791 0.1378 265.5222);
+  --destructive: oklch(0.6368 0.2078 25.3313);
+  --border-token: oklch(0.8452 0 0);
+  --input-token: oklch(0.97 0.0029 264.542);
+  --ring: oklch(0.6397 0.172 36.4421);
+  --bg: var(--background);
+  --border: var(--border-token);
+  --text: var(--foreground);
+  --muted: var(--muted-foreground);
+  --accent: var(--primary);
+  --error: var(--destructive);
+  --warn-bg: oklch(0.97 0.035 85);
+  --warn-border: oklch(0.78 0.13 75);
+  --warn-text: oklch(0.42 0.09 65);
+  --radius: 0.5rem;
+  font-family: "Outfit", "Segoe UI", Roboto, Arial, sans-serif;
 }
 
 * {
@@ -737,6 +755,187 @@ tr.bill-grand td {
   tr {
     break-inside: avoid;
   }
+}
+
+/* ---- AstroVista visual layer ----
+   Токены темы применяются только к представлению: расчётные значения,
+   порядок полей и состав ведомости остаются прежними. */
+body {
+  background:
+    radial-gradient(circle at 12% 0%, oklch(0.98 0.015 45 / 70%), transparent 34rem),
+    var(--background);
+  letter-spacing: -0.01em;
+}
+
+.page {
+  max-width: 1180px;
+  padding-top: 30px;
+}
+
+header h1 {
+  color: var(--secondary);
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  letter-spacing: -0.04em;
+}
+
+.subtitle,
+.dashboard-meta,
+.dashboard-note,
+.hint,
+footer {
+  color: var(--muted-foreground);
+}
+
+.dashboard-card {
+  border: 1px solid color-mix(in oklab, var(--primary) 28%, var(--border-token));
+  border-radius: calc(var(--radius) + 0.35rem);
+  background: linear-gradient(135deg, oklch(0.99 0.018 45), var(--card) 64%);
+  box-shadow: 0 12px 30px oklch(0.35 0.04 260 / 10%);
+}
+
+.eyebrow,
+.summary-total,
+.takeoff-table .takeoff-group th,
+tr.bill-section td {
+  color: var(--primary);
+}
+
+.status-pill {
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.status-ok {
+  background: oklch(0.93 0.045 145);
+  color: oklch(0.39 0.09 145);
+}
+
+.status-warn {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+.step-nav a {
+  border-color: color-mix(in oklab, var(--secondary) 20%, var(--border-token));
+  background: var(--card);
+  color: var(--secondary);
+}
+
+.step-nav a:hover,
+.step-nav a:focus-visible {
+  border-color: var(--primary);
+  background: oklch(0.97 0.025 45);
+  color: var(--primary);
+}
+
+.metric,
+.takeoff-overview > div {
+  border-color: var(--border-token);
+  background: var(--muted-surface);
+}
+
+.metric strong,
+.takeoff-overview strong {
+  color: var(--secondary);
+}
+
+.card {
+  border-color: var(--border-token);
+  border-radius: calc(var(--radius) + 0.15rem);
+  box-shadow: 0 4px 16px oklch(0.35 0.04 260 / 5%);
+}
+
+.card h2 {
+  color: var(--secondary);
+}
+
+.openings-card {
+  border-left-color: var(--primary);
+}
+
+.opening-cost {
+  border-color: oklch(0.86 0.08 75);
+  background: oklch(0.98 0.025 85);
+}
+
+.metal-card {
+  border-left-color: var(--secondary);
+}
+
+input,
+select,
+.readonly-field,
+.toolbar button,
+.file-button,
+.print-button {
+  border-color: var(--border-token);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+input:focus,
+select:focus,
+button:focus-visible,
+.file-button:focus-within {
+  border-color: var(--ring);
+  outline: 3px solid oklch(0.64 0.17 38 / 20%);
+  outline-offset: 1px;
+}
+
+input::placeholder {
+  color: oklch(0.65 0.02 264);
+}
+
+.toolbar button,
+.file-button {
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.toolbar button:hover,
+.file-button:hover,
+.print-button:hover {
+  border-color: var(--primary);
+  background: oklch(0.98 0.025 45);
+  color: var(--primary);
+}
+
+.linklike {
+  color: var(--primary);
+}
+
+.field-hint,
+.window-rigel-row span:last-child,
+.bill-meta,
+tr.bill-sub td,
+.takeoff-note {
+  color: var(--muted-foreground);
+}
+
+.opening-remove {
+  border-color: var(--border-token);
+  color: var(--muted-foreground);
+}
+
+.opening-remove:hover {
+  border-color: var(--destructive);
+  background: oklch(0.97 0.03 25);
+  color: var(--destructive);
+}
+
+table.bill th,
+.takeoff-table thead th {
+  color: var(--muted-foreground);
+}
+
+tr.bill-total td {
+  background: var(--muted-surface);
+}
+
+tr.bill-grand td,
+.takeoff-table .takeoff-total th,
+.takeoff-table .takeoff-total td {
+  border-bottom-color: var(--primary);
+  border-top-color: var(--primary);
 }
 
 /* ---- Свёрнутый блок ручных переопределений ---- */
