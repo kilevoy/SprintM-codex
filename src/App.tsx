@@ -537,7 +537,18 @@ export function App() {
     : commercial.lines.filter((line) => line.name !== "Окна, ворота, двери");
 
   return (
-    <div className="page">
+    <div
+      className="page"
+      onFocusCapture={(event) => {
+        // Поля с числовым значением 0 раньше оставляли курсор перед нулём:
+        // при наборе «2» получалось «02». Выделяем служебный ноль только
+        // при входе в поле, поэтому первое введённое число заменяет его.
+        const target = event.target;
+        if (target instanceof HTMLInputElement && target.type === "number" && target.value === "0") {
+          target.select();
+        }
+      }}
+    >
       <header>
         <h1>СпринтМ</h1>
         <p className="subtitle">Предварительный расчёт ангара ИНСИ — подбор сечений рамы</p>
